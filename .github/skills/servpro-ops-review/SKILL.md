@@ -193,7 +193,7 @@ Produce a report suitable for Cameron, Austin, and Bucko:
 
 ## Crew Accountability Rules
 
-- If a crew is on-site and no photo update for **48 hours**: immediately draft escalation email and log CRM note draft — do not wait for the next scheduled review.
+- During each triggered execution, check all on-site crews for photo compliance. If a crew is on-site and no photo update appears in the last 48 hours, draft an escalation email and CRM note immediately — do not defer to the next scheduled review.
 - Each Monday morning, every crew on an active WIP job must send a text in the customer group chat with Tristan giving the customer their weekly work update.
 - Follow up with crew until they confirm the message was sent.
 - On Friday, confirm all crews on active jobs have posted at least 3 photo updates during the week.

@@ -12,7 +12,7 @@ description: >
 
 # SERVPRO — Google Workspace Cross-Posting + Alignment
 
-Use Dash CRM updates (or best available data when Dash is unavailable — flag all Dash verification items) to sync required details across every Google Workspace tool Tristan uses.
+Use Dash CRM updates (or best available data when Dash is unavailable — see Step 1 below for fallback behavior) to sync required details across every Google Workspace tool Tristan uses.
 
 ## Trigger
 
@@ -23,6 +23,8 @@ Run this skill when:
 - The periodic workspace alignment review is due.
 
 ## Step 1 — Review Gmail Label Flow
+
+**Dash fallback:** When Dash is unavailable, use Gmail, Drive, Calendar, Contacts, and uploaded files as the data source for all steps in this skill. Clearly flag every item that needs Dash verification before it is considered final.
 
 For each open job, check and report:
 
