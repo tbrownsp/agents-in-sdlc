@@ -14,6 +14,17 @@ These encode conventions unique to this Astro + Starlight workshop content repo.
 | [`check-content-alignment`](./check-content-alignment/SKILL.md) | Scans a diff (staged/unstaged or a branch range) for content changes, then finds other lessons that duplicate or parallel the changed prose — formerly-shared passages now copied across pages, and the same concept taught across the VS Code / CLI / App / Cloud harnesses — so duplicated copies don't drift out of sync. Reports candidate files and line ranges; does not edit content. | After editing lesson content under `docs/`, before committing/opening a PR, to find other pages that should change too. |
 | [`validate-site-playwright`](./validate-site-playwright/SKILL.md) | Optional deeper **browser** QA: drives the Playwright MCP server against a local preview to confirm pages render, catch console/hydration errors, find broken images, and confirm Starlight components mounted. | A deeper render/visual pass before a PR that changes how pages render. Complements (doesn't replace) `build-and-verify-docs`. |
 
+## SERVPRO Bartlett/Cordova — Tristan Brown PM skills
+
+Operational skills for SERVPRO restoration project management. These are loaded by the `servpro-pm` custom agent and can also be triggered directly.
+
+| Skill | What it does | Use it when |
+|---|---|---|
+| [`servpro-crm-review`](./servpro-crm-review/SKILL.md) | Pulls all open jobs from Dash CRM, flags missing info and docs, identifies blockers, generates stale-job alerts, and produces paste-ready CRM note drafts and Gmail follow-up drafts every 48 hours. | Running the daily/48-hour CRM triage; getting stale job alerts; drafting CRM notes and follow-up emails. |
+| [`servpro-workspace-sync`](./servpro-workspace-sync/SKILL.md) | Cross-posts Dash CRM data across Gmail, Calendar, Tasks, Contacts, Drive, Docs, Sheets, Forms, and Photos. Checks Gmail label compliance, Calendar event quality, Drive folder completeness, and photo readiness for Dash upload. | Syncing Google Workspace with Dash after any CRM update; doing the periodic workspace alignment review. |
+| [`servpro-pipeline-intake`](./servpro-pipeline-intake/SKILL.md) | Sets up new job packages the moment a lead arrives via Gmail or Google Chat. Captures required intake fields, creates Drive folders, drafts initial outreach and missing-info follow-ups, and enforces the stage-gate checklist before any job moves to WIP. | Receiving a new lead; setting up a new job file; checking stage-gate readiness before WIP mobilization. |
+| [`servpro-ops-review`](./servpro-ops-review/SKILL.md) | Runs the Monday/Wednesday/Friday operational cadence: full calendar audit, crew weekly message drafts, crew photo compliance enforcement (48-hour rule), midweek KPI and blocker review, Friday tracker update, by-customer money summary, and management report draft. | Every Monday, Wednesday, and Friday morning; any crew accountability check; weekly tracker update. |
+
 ## General-purpose skills
 
 Portable skills that aren't specific to this repo's content model.
