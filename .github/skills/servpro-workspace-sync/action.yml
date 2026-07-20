@@ -25,7 +25,9 @@ runs:
         echo "  skipped without modification."
         echo "======================================================"
         # TODO: Implement assigned-to-me filter by calling Dash CRM API
-        # and cross-referencing with $GOOGLE_IMPERSONATED_USER.
+        # using ${{ secrets.DASH_API_TOKEN }} and cross-referencing with
+        # the Google Workspace user set in ${{ secrets.GOOGLE_IMPERSONATED_USER }}.
+        # Both must be added to repository secrets under Settings → Secrets.
         # Hard-stop if a job is not assigned to Tristan — log and skip it.
 
     - name: Sort Gmail by label (Module 2 — Gmail Routing)

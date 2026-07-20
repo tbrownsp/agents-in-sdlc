@@ -31,11 +31,16 @@ runs:
       run: |
         DAY=$(date +%A)
         echo "Today is $DAY."
-        echo "Running full ops review steps regardless of day."
-        echo "  → Monday:    Crew audit + full calendar audit + weekly schedule."
-        echo "  → Wednesday: Midweek KPI and blocker check."
-        echo "  → Friday:    Full tracker update + weekly closeout."
-        # TODO: Branch logic per day of week using the $DAY variable.
+        echo "Day-specific behavior:"
+        echo "  → Monday:    Full crew audit + weekly calendar audit + Monday crew texts."
+        echo "  → Wednesday: Midweek KPI and blocker check (subset of steps)."
+        echo "  → Friday:    Full weekly tracker build + closeout report."
+        echo "  → Other days: Financial summary and 48-hour stale check only."
+        # TODO: Use $DAY to gate the following steps:
+        #   - Run "Crew schedule audit" step only on Monday (DAY == "Monday")
+        #   - Run "Friday weekly tracker update" step fully only on Friday
+        #   - All other steps (financial summary, photo compliance,
+        #     48-hour stale check, meeting protection) run every day.
 
     - name: Financial summary (Module 4 — Financial Review)
       shell: bash

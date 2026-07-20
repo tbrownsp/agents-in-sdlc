@@ -48,6 +48,9 @@ runs:
         #     -H "Authorization: ******" \
         #     -H "Content-Type: application/json" \
         #     -d '{"note": "<approved_note_body>"}'
+        # If Dash requires OAuth2 instead of a static token, exchange credentials
+        # using $DASH_OAUTH_CLIENT_ID and $DASH_OAUTH_CLIENT_SECRET before each
+        # request and use the returned access token in the Authorization header.
         # Verify HTTP 200/201. Log job name, timestamp, and first 80 chars of note.
         # Collect failures — do not abort on a single job failure.
 

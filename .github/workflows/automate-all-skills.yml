@@ -14,7 +14,8 @@
 name: Automate All Agents and Skills
 
 on:
-  # Runs automatically every day at 2:00 AM UTC
+  # Runs every day at 2:00 AM UTC (UTC-5 = 9 PM CT / UTC-6 = 8 PM CT).
+  # Adjust the cron expression if a different local time is preferred.
   schedule:
     - cron: '0 2 * * *'
   # Allows manual trigger from the GitHub Actions UI
@@ -124,9 +125,12 @@ jobs:
   # Step 5 — WAIT FOR TRISTAN APPROVAL
   # Manual gate. Nothing posts to Dash or sends communication until Tristan
   # explicitly approves in the GitHub Actions UI.
-  # Requires the "tristan-approval" environment to be configured in:
-  #   Repository Settings → Environments → tristan-approval
-  # with "Required reviewers" set to Tristan's GitHub account.
+  #
+  # One-time setup required:
+  #   Repository Settings → Environments → Create environment named
+  #   "tristan-approval" → Add Tristan's GitHub account under
+  #   "Required reviewers" and set "Wait timer" to 0.
+  #   GitHub will notify Tristan by email when approval is needed.
   # ---------------------------------------------------------------------------
   await-tristan-approval:
     name: "Step 5 — WAIT FOR TRISTAN APPROVAL"

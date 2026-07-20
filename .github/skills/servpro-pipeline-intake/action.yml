@@ -45,11 +45,21 @@ runs:
         echo "    1. Money (deposit / payment commitment)"
         echo "    2. Contract (signed)"
         echo "    3. Material Selection Form (MSF) completed"
-        echo "  EXCEPTION: basic drywall put-back may proceed without MSF."
+        echo ""
+        echo "  EXCEPTION — Basic Drywall Put-Back:"
+        echo "    A job qualifies as 'basic drywall put-back' when:"
+        echo "      - Scope is limited to hanging, taping, and painting"
+        echo "        drywall (no cabinetry, flooring, or specialty finishes)"
+        echo "      - Estimated value is under the threshold in Dash settings"
+        echo "      - Tristan has explicitly flagged the job as drywall-only"
+        echo "    In this case, MSF may be waived; Money and Contract"
+        echo "    are still required before WIP."
         echo "======================================================"
         # TODO: For each lead/job being staged, query Dash for Money, Contract,
         # and MSF status. Block WIP transition if any of these are missing
         # (log a clear blocker message; do not silently skip).
+        # Apply drywall exception logic only when the job meets all three
+        # qualifying criteria above.
 
     - name: Create Drive job file for new leads
       shell: bash
