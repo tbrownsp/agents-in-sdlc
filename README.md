@@ -33,7 +33,7 @@ For PR/CI rules, see **[CONTRIBUTING.md](./CONTRIBUTING.md)**.
 - **`.github/`**
   - `copilot-instructions.md` + `instructions/*.md` — Authoring guidance for Copilot.
   - `agents/`, `skills/` — Custom agents and skills available to Copilot in this repo.
-  - `workflows/pages.yml` — Builds and deploys the site on pushes to `main`.
+  - `workflows/pages.yml` — Builds the site on PRs and pushes, and deploys it from `main` when the repository has GitHub Pages enabled and `ENABLE_GITHUB_PAGES_DEPLOY=true`.
 
 ## Local development
 

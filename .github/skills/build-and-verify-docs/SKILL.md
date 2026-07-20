@@ -89,7 +89,7 @@ Lychee runs offline and won't catch broken **external** GitHub URLs. When you ch
 2. `npm run build` (Astro build) — must succeed
 3. lychee offline link check against `website/dist/` — must pass
 
-After a push to `main`, `pages.yml` deploys `website/dist` to GitHub Pages. Browser validation and content-alignment analysis are separate optional/safety-net workflows, not part of the Pages build job.
+After a push to `main`, `pages.yml` deploys `website/dist` to GitHub Pages only when the repository has GitHub Pages enabled and `ENABLE_GITHUB_PAGES_DEPLOY=true`. Browser validation and content-alignment analysis are separate optional/safety-net workflows, not part of the Pages build job.
 
 ## PR-time consistency pass
 

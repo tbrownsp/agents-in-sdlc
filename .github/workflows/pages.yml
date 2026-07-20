@@ -1,9 +1,11 @@
 name: Build and deploy workshop site
 
 # Builds the Astro + Starlight site under `website/` (sourcing lesson Markdown from
-# `docs/`) and deploys to GitHub Pages on pushes to main. Every push and pull
-# request runs a build-only validation pass plus a link check, so the build can
-# serve as a required status check on any PR.
+# `docs/`) and can deploy to GitHub Pages from pushes to main when the
+# repository has GitHub Pages enabled and explicitly opts in via the
+# `ENABLE_GITHUB_PAGES_DEPLOY` repository variable. Every push and pull request
+# runs a build-only validation pass plus a link check, so the build can serve
+# as a required status check on any PR.
 
 on:
   push:
@@ -25,6 +27,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_GITHUB_PAGES_DEPLOY == 'true'
+        uses: actions/configure-pages@v5
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -67,14 +73,14 @@ jobs:
           fail: true
 
       - name: Upload Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_GITHUB_PAGES_DEPLOY == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: website/dist
 
   deploy:
     name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_GITHUB_PAGES_DEPLOY == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:

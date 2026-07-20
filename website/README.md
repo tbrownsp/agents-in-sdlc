@@ -26,4 +26,4 @@ The workshop home (`/`) is generated from `../docs/README.md` (its `slug: index`
 
 ## Deployment
 
-Deployed by [`../.github/workflows/pages.yml`](../.github/workflows/pages.yml) to GitHub Pages on pushes to `main`.
+Deployed by [`../.github/workflows/pages.yml`](../.github/workflows/pages.yml) to GitHub Pages on pushes to `main` when the repository has GitHub Pages enabled and `ENABLE_GITHUB_PAGES_DEPLOY=true`.

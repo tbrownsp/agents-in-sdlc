@@ -116,7 +116,7 @@ The site runs at <http://localhost:4321/copilot-workshops/>.
 2. **Page-count invariant** — Starlight emits 36 workshop routes for English and each of the five configured locales, then adds the legacy redirect. This equals 217 built `index.html` pages when excluding the 404 page; the build reports 218 HTML files including the 404 page.
 3. **Link check** — lychee (offline) against the built `website/dist/`. Catches broken internal links/images.
 
-**What CI enforces vs. what you run locally:** CI (`pages.yml`) runs the **build** and the **lychee** link check on every PR. It does not run browser validation or the content-alignment agentic workflow as part of the Pages build job. After merge to `main`, `pages.yml` deploys the site to GitHub Pages.
+**What CI enforces vs. what you run locally:** CI (`pages.yml`) runs the **build** and the **lychee** link check on every PR. It does not run browser validation or the content-alignment agentic workflow as part of the Pages build job. After merge to `main`, `pages.yml` deploys the site to GitHub Pages only when the repository has GitHub Pages enabled and `ENABLE_GITHUB_PAGES_DEPLOY=true`.
 
 **Consistency pass.** When a change renames a file or folder, adds or removes a skill or instruction file, touches duplicated prose, or changes how the build works, also sweep for stale references — the structure trees and cross-doc pointers in `README.md`, `AUTHORING.md`, and `.github/copilot-instructions.md` aren't checked by the Astro build. The [`build-and-verify-docs`](./.github/skills/build-and-verify-docs/SKILL.md) skill has the full checklist, and the `check-content-alignment` skill plus `.github/workflows/content-alignment.md` help catch prose that needs aligned updates.
 
