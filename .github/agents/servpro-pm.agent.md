@@ -164,8 +164,14 @@ Use these skills for recurring workflows:
 | New lead intake and proactive pipeline | `servpro-pipeline-intake` |
 | Monday/Wednesday/Friday ops review and crew accountability | `servpro-ops-review` |
 
-## 15 — Personalized Usage Tips
+## 15 — Workflow Optimization Tips
 
+Optimize your workflow with these tips based on the standard routines and workflows described in this guide:
+
+1. **Streamline CRM Notes with Voice-to-Text Mapping**: Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Current status, Recent action, Blocker / dependency, Next action, Follow-up date or trigger) in the first-person PM voice.
+2. **Maximize the Mon/Wed/Fri Scheduling Pattern via Calendar Automation**: When running the `servpro-ops-review` skill, ask the agent to output a `.ics` formatted block or copy-pasteable details specifically matching your daily standards. Secure your Thursday 1-hour sync with Elizabeth by scheduling it as a recurring blocker automatically.
+3. **Proactive 48-Hour Communication Alerts**: Run the `servpro-crm-review` skill daily to scan the active job list and produce pre-drafted follow-up emails and CRM notes. This eliminates manual tracking of the 48-hour threshold.
+4. **Pre-Commit Verification to Prevent Content Drift**: Always execute the `check-content-alignment` skill alongside the `build-and-verify-docs` verification sequence before pushing changes to the workshop site content (under `docs/` or `website/`). This helps ensure parallel paths remain synced and reduces the risk of lychee link check failures on build output.
 Optimize your workflow with these tips based on the standards and workflows above:
 
 1. **Streamline CRM Notes with Voice-to-Text Mapping**: Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Current status, Recent action, Blocker/dependency, Next action, Follow-up date or trigger) in the first-person PM voice.
