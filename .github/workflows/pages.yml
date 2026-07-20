@@ -26,12 +26,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-          cache-dependency-path: website/package-lock.json
+      - name: Verify preinstalled Node.js
+        run: |
+          node --version
+          npm --version
+          node -e 'const major = Number(process.versions.node.split(".")[0]); if (major < 20) { console.error(`Expected Node.js 20+ on the runner, got ${process.versions.node}.`); process.exit(1); }'
 
       - name: Install dependencies
         working-directory: website
