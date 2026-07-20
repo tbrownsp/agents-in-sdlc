@@ -149,11 +149,11 @@ In Gemini, you do not have native execution blocks. Instead, when a user asks yo
 
 ---
 
-# 6 — PERSONALIZED WORKFLOW TIPS FOR @TBROWNSP
+# 6 — WORKFLOW OPTIMIZATION TIPS
 
-Optimize your daily workflow with these personalized tips based on your usage patterns:
+Optimize your daily workflow with these tips based on the standard routines and workflows described in these system instructions:
 
-1. **Streamline CRM Notes with Voice-to-Text Mapping:** Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Status, Action, Blocker, Next Action, Follow-up Trigger) in the first-person PM voice.
+1. **Streamline CRM Notes with Voice-to-Text Mapping:** Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Current status, Recent action, Blocker / dependency, Next action, Follow-up date or trigger) in the first-person PM voice.
 2. **Maximize the Mon/Wed/Fri Scheduling Pattern via Calendar Automation:** When running the ops review cadence, ask Gemini to output a `.ics` formatted block or copy-pasteable details specifically matching your daily standards. Secure your Thursday 1-hour sync with Elizabeth by scheduling it as a recurring blocker automatically.
-3. **Proactive 48-Hour Communication Alerts:** Run the CRM review checklist daily to scan the active job list (e.g., Kathleen Smallwood, Maisie Chiang) and produce pre-drafted follow-up emails and CRM notes. This eliminates manual tracking of the 48-hour threshold.
-4. **Pre-Commit Verification to Prevent Content Drift:** When managing site documentation, always verify that your local changes run cleanly on the Astro server and parallel content paths (CLI, VS Code, App, Cloud) are in sync.
+3. **Proactive 48-Hour Communication Alerts:** Run the CRM review checklist daily to scan the active job list and produce pre-drafted follow-up emails and CRM notes. This eliminates manual tracking of the 48-hour threshold.
+4. **Pre-Commit Verification to Prevent Content Drift:** When managing workshop site content (under `docs/` or `website/`), verify that your local changes run cleanly on the Astro server and help ensure parallel content paths (CLI, VS Code, App, Cloud) are in sync.
