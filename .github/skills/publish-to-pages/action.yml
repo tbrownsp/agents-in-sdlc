@@ -1,0 +1,139 @@
+name: 'Publish to Pages'
+description: >
+  Publish presentations and web content to GitHub Pages.
+  Converts PPTX, PDF, HTML, or Google Slides to a live GitHub Pages URL.
+  Handles repo creation, file conversion, Pages enablement, and returns
+  the live URL.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GH_PAT  — GitHub Personal Access Token with 'repo' and 'pages' scopes,
+#              used by the publish script to create the target repository and
+#              enable GitHub Pages.  Set this in repository Settings → Secrets.
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Check prerequisites
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking publish-to-pages prerequisites."
+        echo "======================================================"
+        MISSING=0
+        command -v gh >/dev/null 2>&1 || { echo "  MISSING: gh CLI — install from https://cli.github.com"; MISSING=1; }
+        command -v python3 >/dev/null 2>&1 || { echo "  MISSING: python3 (needed for PPTX/PDF conversion)"; MISSING=1; }
+        if [ "$MISSING" -eq 0 ]; then
+          echo "  Prerequisites: OK"
+        else
+          echo "  Resolve the missing prerequisites above before publishing."
+        fi
+
+    - name: Detect input type
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Detecting input file type."
+        echo "======================================================"
+        # INPUT_FILE is expected to be set in the workflow environment
+        # or passed as an environment variable from the calling job.
+        INPUT="${INPUT_FILE:-}"
+        if [ -z "$INPUT" ]; then
+          echo "  No INPUT_FILE set — skipping conversion."
+          echo "  Set INPUT_FILE in the workflow environment to specify the source."
+        elif echo "$INPUT" | grep -qi '\.html\?$'; then
+          echo "  Input type: HTML — no conversion needed."
+        elif echo "$INPUT" | grep -qi '\.pptx$'; then
+          echo "  Input type: PPTX — will convert via convert-pptx.py."
+        elif echo "$INPUT" | grep -qi '\.pdf$'; then
+          echo "  Input type: PDF — will convert via convert-pdf.py."
+        elif echo "$INPUT" | grep -qi 'docs\.google\.com/presentation'; then
+          echo "  Input type: Google Slides — will download as PPTX then convert."
+        else
+          echo "  Input type: unknown ('$INPUT') — please provide an HTML, PPTX, PDF, or Google Slides URL."
+        fi
+
+    - name: Convert PPTX to HTML (if applicable)
+      shell: bash
+      run: |
+        INPUT="${INPUT_FILE:-}"
+        if echo "$INPUT" | grep -qi '\.pptx$' && [ -f "$INPUT" ]; then
+          echo "======================================================"
+          echo "  Converting PPTX to HTML."
+          echo "======================================================"
+          SCRIPT_DIR="$GITHUB_ACTION_PATH"
+          python3 "$SCRIPT_DIR/scripts/convert-pptx.py" "$INPUT" /tmp/publish-output.html \
+            || { echo "ERROR: PPTX conversion failed. Run: pip install python-pptx"; exit 1; }
+          echo "  PPTX conversion: OK → /tmp/publish-output.html"
+        else
+          echo "  Skipping PPTX conversion (not applicable)."
+        fi
+
+    - name: Convert PDF to HTML (if applicable)
+      shell: bash
+      run: |
+        INPUT="${INPUT_FILE:-}"
+        if echo "$INPUT" | grep -qi '\.pdf$' && [ -f "$INPUT" ]; then
+          echo "======================================================"
+          echo "  Converting PDF to HTML."
+          echo "======================================================"
+          SCRIPT_DIR="$GITHUB_ACTION_PATH"
+          python3 "$SCRIPT_DIR/scripts/convert-pdf.py" "$INPUT" /tmp/publish-output.html \
+            || { echo "ERROR: PDF conversion failed. Install: apt install poppler-utils"; exit 1; }
+          echo "  PDF conversion: OK → /tmp/publish-output.html"
+        else
+          echo "  Skipping PDF conversion (not applicable)."
+        fi
+
+    - name: Publish to GitHub Pages
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Publishing to GitHub Pages."
+        echo "======================================================"
+        INPUT="${INPUT_FILE:-}"
+        REPO_NAME="${PAGES_REPO_NAME:-}"
+        VISIBILITY="${PAGES_VISIBILITY:-public}"
+        DESCRIPTION="${PAGES_DESCRIPTION:-Published via publish-to-pages skill}"
+        SCRIPT_DIR="$GITHUB_ACTION_PATH"
+
+        if [ -z "$INPUT" ]; then
+          echo "  No INPUT_FILE provided — skipping publish step."
+          echo "  Set INPUT_FILE, PAGES_REPO_NAME (optional), PAGES_VISIBILITY (optional)"
+          echo "  in the workflow environment to publish."
+          exit 0
+        fi
+
+        # Determine the HTML file to publish.
+        if [ -f /tmp/publish-output.html ]; then
+          HTML_FILE=/tmp/publish-output.html
+        elif echo "$INPUT" | grep -qi '\.html\?$' && [ -f "$INPUT" ]; then
+          HTML_FILE="$INPUT"
+        else
+          echo "  No HTML file to publish — check previous conversion steps."
+          exit 1
+        fi
+
+        # Default repo name to input filename without extension.
+        if [ -z "$REPO_NAME" ]; then
+          REPO_NAME=$(basename "$INPUT" | sed 's/\.[^.]*$//')
+        fi
+
+        echo "  HTML file   : $HTML_FILE"
+        echo "  Repo name   : $REPO_NAME"
+        echo "  Visibility  : $VISIBILITY"
+
+        bash "$SCRIPT_DIR/scripts/publish.sh" "$HTML_FILE" "$REPO_NAME" \
+          "$VISIBILITY" "$DESCRIPTION"
+
+    - name: Emit publish summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  publish-to-pages complete."
+        echo "  If published:"
+        echo "    Repository : https://github.com/<owner>/<repo>"
+        echo "    Live URL   : https://<owner>.github.io/<repo>/"
+        echo "    Note       : GitHub Pages takes 1-2 minutes to go live."
+        echo "======================================================"

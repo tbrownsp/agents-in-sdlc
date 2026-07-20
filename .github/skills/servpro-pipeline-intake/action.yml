@@ -1,0 +1,146 @@
+name: 'ServPro Pipeline Intake'
+description: >
+  SERVPRO Bartlett/Cordova new-lead intake and calendar spread. Scans Gmail
+  and Google Chat for new leads, creates Drive job files, creates Google Contacts
+  entries, drafts outreach via Gemini AI, generates customer expectation Forms,
+  and pushes to Calendar and Tasks. All outreach is draft-only until approved.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key JSON
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
+#   GOOGLE_CHAT_LEADS_SPACE_ID             — Chat space ID for new-leads monitoring
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token or OAuth credentials
+#   GEMINI_API_KEY                         — Google AI Studio API key (for AI-assisted outreach)
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Only leads directed to Tristan Brown are"
+        echo "  processed. All others are skipped without modification."
+        echo "======================================================"
+        # TODO: Filter incoming leads to only those assigned to
+        # $GOOGLE_IMPERSONATED_USER or Tristan's Dash user ID.
+
+    - name: Scan for new leads (Module 3 — Lead Intake)
+      shell: bash
+      run: |
+        echo "[DRAFT] Scanning Gmail and Google Chat for new leads."
+        echo "  Gmail: unread messages in inbox with loss/damage/restoration keywords."
+        echo "  Chat:  $GOOGLE_CHAT_LEADS_SPACE_ID — unprocessed lead messages."
+        # TODO: Gmail — Use Gmail API (users.messages.list with q='is:unread') to
+        # retrieve unprocessed messages matching: "water damage", "fire", "mold",
+        # "flood", "claim", "estimate", "SERVPRO". Extract: sender name, phone,
+        # email, address, loss type, insurance carrier from message body/thread.
+        # Chat — Use Chat API (spaces.messages.list) on $GOOGLE_CHAT_LEADS_SPACE_ID
+        # to retrieve messages not yet tagged with a Dash job number.
+        # Output: unified lead list with source (Gmail/Chat), timestamp, extracted fields.
+
+    - name: Check phase gate before WIP transition
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — Phase Gate Check:"
+        echo "  A job MUST NOT advance to Work In Progress (WIP)"
+        echo "  until all three of the following are confirmed:"
+        echo "    1. Money (deposit / payment commitment)"
+        echo "    2. Contract (signed)"
+        echo "    3. Material Selection Form (MSF) completed"
+        echo ""
+        echo "  EXCEPTION — Basic Drywall Put-Back:"
+        echo "    A job qualifies as 'basic drywall put-back' when:"
+        echo "      - Scope is limited to hanging, taping, and painting"
+        echo "        drywall (no cabinetry, flooring, or specialty finishes)"
+        echo "      - Estimated value is under the threshold in Dash settings"
+        echo "      - Tristan has explicitly flagged the job as drywall-only"
+        echo "    In this case, MSF may be waived; Money and Contract"
+        echo "    are still required before WIP."
+        echo "======================================================"
+        # TODO: For each lead/job being staged, query Dash for Money, Contract,
+        # and MSF status. Block WIP transition if any of these are missing
+        # (log a clear blocker message; do not silently skip).
+        # Apply drywall exception logic only when the job meets all three
+        # qualifying criteria above.
+
+    - name: Create Drive job file for new leads
+      shell: bash
+      run: |
+        echo "[DRAFT] Creating Google Drive folder for new lead."
+        echo "  Location: $GDRIVE_ROOT_FOLDER_ID / [Job Address]"
+        # TODO: Use Drive API to create a new job folder with standard sub-folders
+        # (Contracts, Photos, Estimates, Correspondence).
+
+    - name: Create Google Contacts entry for new lead
+      shell: bash
+      run: |
+        echo "[DRAFT] Creating Google Contacts entry for each new lead."
+        echo "  Contact group: SERVPRO Customers"
+        echo "  Fields: Name, Phone, Email, Property Address, Referral Source, Job Number (if assigned)."
+        # TODO: For each new lead with a name and at least one contact method:
+        #   Use People API (people.createContact) impersonating $GOOGLE_IMPERSONATED_USER.
+        #   Set contact group to 'SERVPRO Customers'.
+        #   Check for duplicate by email/phone before creating — update instead of create if found.
+        # Log each new contact ID and name.
+
+    - name: Draft outreach email for missing info via Gemini AI
+      shell: bash
+      run: |
+        echo "[DRAFT] Using Gemini AI to draft outreach emails for missing intake fields."
+        echo "  Required fields: Name, Address, Access, Email, Phone, Cause of Loss, Insurance."
+        echo "  Model: gemini-2.0-flash"
+        # TODO: For each new lead, identify missing required fields.
+        # Build a Gemini prompt with: available fields, missing fields list.
+        # System prompt: "Draft a brief, professional email from Tristan Brown (SERVPRO
+        # Bartlett/Cordova) requesting the missing information. Tone: warm, responsive,
+        # direct. Include what information is needed and why."
+        # Call Gemini API and store the draft email per lead.
+        # Create Gmail draft via Gmail API — do NOT send automatically.
+
+    - name: Draft customer expectation forms via Google Forms
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating pre-filled Google Forms link for each new lead."
+        echo "  Form: Customer Information & Expectation Form"
+        # TODO: Use Forms API to retrieve the template form ID and generate a pre-filled URL:
+        #   https://docs.google.com/forms/d/<FORM_ID>/viewform?entry.XXXX=<name>&entry.XXXX=<address>
+        # Generate one pre-filled link per new lead. Store link in the Drive job folder.
+        # Also create a Docs-based intake summary from the template in
+        # $GDRIVE_ROOT_FOLDER_ID/<job>/Docs/ — pre-populate all available fields.
+
+    - name: Push to Calendar and Tasks (Module 3 — Calendar Spread)
+      shell: bash
+      run: |
+        echo "[DRAFT] Pushing job details to Google Calendar and Tasks."
+        echo "  Calendar event fields: Job Name, Address, task details, contact, claim context."
+        echo "  Color coding: yellow=out of office | red=in office | blue/berry=crew on site | orange=virtual"
+        echo "  Weekly pattern: Mon–Wed = WIP visits; Tue/Thu = Pending Sale visits;"
+        echo "                  Fri = documentation, closeout, admin (in-office all day)."
+        # TODO: Use Calendar API (events.insert / events.patch) to create/update events
+        # impersonating $GOOGLE_IMPERSONATED_USER.
+        # Event structure: summary=<job name>, location=<address>,
+        # description=<customer contact + task + claim context + special notes>,
+        # colorId based on job type.
+        # Protect Monday morning (2h office block) and Friday (all-day office).
+        # Use Tasks API (tasks.insert / tasks.patch) for follow-up items per job.
+        # Verify no duplicate events exist before inserting.
+
+    - name: Emit intake draft report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Pipeline Intake complete (DRAFT MODE)."
+        echo "  Leads scanned: Gmail + Google Chat."
+        echo "  Google Contacts entries drafted."
+        echo "  Drive job folders created."
+        echo "  Gemini-drafted outreach emails stored in Gmail."
+        echo "  Customer expectation Forms links generated."
+        echo "  Calendar events and Tasks queued."
+        echo "  Nothing has been sent, created, or posted."
+        echo "======================================================"

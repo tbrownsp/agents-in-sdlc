@@ -1,0 +1,114 @@
+name: 'Validate Site with Playwright'
+description: >
+  Optional deeper browser QA pass for the built Copilot Workshops site.
+  Serves the production build, navigates a representative sample of routes,
+  checks for console errors, broken images, and confirms Markdown rendered
+  as Starlight callouts. Complements (does not replace) build-and-verify-docs.
+
+runs:
+  using: composite
+  steps:
+    - name: Verify build exists
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking that a clean build exists in website/dist/."
+        echo "======================================================"
+        if [ ! -d "website/dist" ]; then
+          echo "ERROR: website/dist not found."
+          echo "  Run build-and-verify-docs first to produce the build."
+          exit 1
+        fi
+        PAGE_COUNT=$(find website/dist -name index.html | wc -l)
+        echo "  Built pages found: $PAGE_COUNT"
+        echo "  Build: present"
+
+    - name: Derive routes from built dist
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Deriving routes from website/dist/."
+        echo "======================================================"
+        find website/dist -name index.html | grep -v 404 | \
+          sed 's#website/dist#/copilot-workshops#; s#/index.html#/#' | \
+          sort > /tmp/playwright-routes.txt
+        TOTAL=$(wc -l < /tmp/playwright-routes.txt)
+        echo "  Total routes: $TOTAL"
+        echo "  Sample routes to validate (one per harness + landing):"
+        grep -E '(/copilot-workshops/$|/cli/0-prereq|/vscode/0-prereq|/app/0-prereq|/cloud/0-prereq)' \
+          /tmp/playwright-routes.txt | head -10 | sed 's/^/    /'
+
+    - name: Start preview server
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Starting preview server (website/dist/ at base /copilot-workshops/)."
+        echo "======================================================"
+        cd website
+        # Start the preview server in the background and capture PID.
+        npm run preview -- --host 0.0.0.0 &
+        PREVIEW_PID=$!
+        echo "PREVIEW_PID=$PREVIEW_PID" >> /tmp/playwright-env.sh
+        echo "  Preview server PID: $PREVIEW_PID"
+        # Wait for the server to become ready.
+        for i in $(seq 1 15); do
+          if curl -s -o /dev/null -w '%{http_code}' \
+              http://localhost:4321/copilot-workshops/ 2>/dev/null | grep -q '200'; then
+            echo "  Server ready after ${i}s."
+            break
+          fi
+          sleep 1
+        done
+
+    - name: Validate representative routes via Playwright MCP
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Validating routes with Playwright MCP server."
+        echo "  (Playwright MCP browser tools used when agent runs interactively.)"
+        echo "======================================================"
+        # In the automated workflow context, exercise the preview server with curl
+        # to verify HTTP 200 responses for each route.  A full browser pass
+        # (console errors, broken images, Markdown rendering) is interactive-only
+        # and requires the Playwright MCP server — see SKILL.md.
+        PASS=0
+        FAIL=0
+        while IFS= read -r route; do
+          URL="http://localhost:4321$route"
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$URL" 2>/dev/null || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            PASS=$((PASS + 1))
+          else
+            echo "  FAIL ($STATUS): $URL"
+            FAIL=$((FAIL + 1))
+          fi
+        done < /tmp/playwright-routes.txt
+        echo "  Routes validated — PASS: $PASS | FAIL: $FAIL"
+        if [ "$FAIL" -gt 0 ]; then
+          echo "ERROR: $FAIL route(s) returned non-200 status."
+          exit 1
+        fi
+
+    - name: Tear down preview server
+      if: always()
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Stopping preview server."
+        echo "======================================================"
+        if [ -f /tmp/playwright-env.sh ]; then
+          source /tmp/playwright-env.sh
+          kill "$PREVIEW_PID" 2>/dev/null || true
+          echo "  Preview server stopped (PID $PREVIEW_PID)."
+        fi
+
+    - name: Emit validate-site summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  validate-site-playwright complete."
+        echo "  All routes returned HTTP 200."
+        echo "  For a full browser pass (console errors, broken images,"
+        echo "  Markdown rendering), run this skill interactively with"
+        echo "  the Playwright MCP server available."
+        echo "======================================================"

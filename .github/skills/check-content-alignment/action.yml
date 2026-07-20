@@ -1,0 +1,104 @@
+name: 'Check Content Alignment'
+description: >
+  Scan a diff of docs/** for content changes, then find other lessons that
+  duplicate or parallel the changed prose. Reports formerly-shared callouts
+  now copied across pages and the same concept taught across harnesses.
+  Advisory and read-only — reports candidates; never edits content.
+
+runs:
+  using: composite
+  steps:
+    - name: Get diff against base branch
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Getting diff of docs/ against origin/main."
+        echo "======================================================"
+        git fetch origin main --depth=1 2>/dev/null || true
+        git diff origin/main...HEAD -- docs > /tmp/content-alignment-diff.txt
+        LINES=$(wc -l < /tmp/content-alignment-diff.txt)
+        echo "  Diff size: $LINES lines"
+        if [ "$LINES" -eq 0 ]; then
+          echo "  No changes to docs/ detected — nothing to align."
+        fi
+
+    - name: Identify changed lesson files
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Identifying changed lesson files in docs/."
+        echo "======================================================"
+        git fetch origin main --depth=1 2>/dev/null || true
+        CHANGED=$(git diff --name-only origin/main...HEAD -- docs/ 2>/dev/null | \
+          grep '\.md$' || true)
+        if [ -z "$CHANGED" ]; then
+          echo "  No changed Markdown files found."
+        else
+          echo "  Changed files:"
+          echo "$CHANGED" | sed 's/^/    /'
+        fi
+        echo "$CHANGED" > /tmp/changed-doc-files.txt
+
+    - name: Search for parallel copies across harnesses
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Searching for shared callouts across harnesses."
+        echo "======================================================"
+        # Look for high-fan-out phrases that span multiple harnesses.
+        PHRASES=(
+          "Approve and run workflows"
+          "custom instruction"
+          "MCP server"
+          "agent mode"
+          "Tailspin Toys"
+        )
+        for phrase in "${PHRASES[@]}"; do
+          HITS=$(grep -rln "$phrase" docs/cli docs/vscode docs/app docs/cloud \
+            --include='*.md' 2>/dev/null | wc -l)
+          echo "  '$phrase' found in $HITS lesson file(s) across harnesses."
+        done
+
+    - name: Report cross-harness candidates for changed files
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking changed files for cross-harness parallels."
+        echo "======================================================"
+        while IFS= read -r file; do
+          [ -z "$file" ] && continue
+          BASENAME=$(basename "$file")
+          echo "  Changed: $file"
+          # Find the same filename in sibling harnesses.
+          for harness in cli vscode app cloud; do
+            CANDIDATE="docs/$harness/$BASENAME"
+            if [ -f "$CANDIDATE" ] && [ "$CANDIDATE" != "$file" ]; then
+              echo "    → Parallel in $harness: $CANDIDATE (review for drift)"
+            fi
+          done
+        done < /tmp/changed-doc-files.txt
+
+    - name: Check for stale cross-references
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking for stale cross-references."
+        echo "======================================================"
+        while IFS= read -r file; do
+          [ -z "$file" ] && continue
+          SLUG=$(basename "$file" .md)
+          HITS=$(grep -rln "$SLUG" docs --include='*.md' 2>/dev/null | \
+            grep -v "^$file$" | wc -l)
+          if [ "$HITS" -gt 0 ]; then
+            echo "  '$SLUG' referenced in $HITS other file(s) — verify links are still valid."
+          fi
+        done < /tmp/changed-doc-files.txt
+
+    - name: Emit alignment report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  check-content-alignment complete (advisory / read-only)."
+        echo "  Review findings above. Apply aligned edits manually if needed,"
+        echo "  then re-run build-and-verify-docs before opening the PR."
+        echo "======================================================"

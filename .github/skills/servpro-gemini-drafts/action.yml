@@ -1,0 +1,135 @@
+name: 'ServPro Gemini Draft Generation'
+description: >
+  SERVPRO Bartlett/Cordova Gemini AI-powered draft generation. Calls the Gemini
+  API to convert job data and voice-note inputs into polished CRM notes, customer
+  emails, adjuster letters, crew messages, and supplement summaries in Tristan's
+  voice. All outputs are DRAFT ONLY — nothing sent or posted until approved.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GEMINI_API_KEY          — Google AI Studio API key
+#                             (or Vertex AI service account in enterprise mode)
+#   GOOGLE_CLOUD_PROJECT    — GCP project ID (Vertex AI / enterprise mode)
+#   GOOGLE_CLOUD_LOCATION   — GCP region, e.g. us-central1
+#
+# Optional environment variables:
+#   GEMINI_ENTERPRISE       — Set to 'true' to route through Vertex AI instead
+#                             of Google AI Studio (enables enterprise features).
+#   GEMINI_MODEL_FAST       — Override fast model (default: gemini-2.0-flash)
+#   GEMINI_MODEL_PRO        — Override pro model  (default: gemini-2.5-pro)
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate Gemini credentials
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Validating Gemini API credentials."
+        echo "======================================================"
+        if [ "${GEMINI_ENTERPRISE:-false}" = "true" ]; then
+          echo "  Mode: Gemini Enterprise (Vertex AI)"
+          echo "  Project : $GOOGLE_CLOUD_PROJECT"
+          echo "  Location: $GOOGLE_CLOUD_LOCATION"
+          # TODO: Exchange OIDC token for Vertex AI access token via Workload Identity.
+          # Endpoint: https://$GOOGLE_CLOUD_LOCATION-aiplatform.googleapis.com
+        else
+          echo "  Mode: Google AI Studio (GEMINI_API_KEY)"
+          # TODO: Validate $GEMINI_API_KEY is set and non-empty.
+        fi
+        FAST="${GEMINI_MODEL_FAST:-gemini-2.0-flash}"
+        PRO="${GEMINI_MODEL_PRO:-gemini-2.5-pro}"
+        echo "  Fast model: $FAST"
+        echo "  Pro model : $PRO"
+
+    - name: Generate CRM note drafts (Gemini — fast model)
+      shell: bash
+      run: |
+        echo "[DRAFT] Using Gemini ($FAST) to generate per-job CRM note drafts."
+        echo "  Input: structured job breakdowns from servpro-crm-review."
+        echo "  Output format: Dash-ready first-person PM note."
+        echo "  Formula: Current Status | Recent Action | Blocker | Next Action | Follow-up date."
+        # TODO: For each job in the CRM review artifact:
+        #   1. Build a prompt from the job breakdown (stage, last contact, blocker, next action).
+        #   2. POST to Gemini API:
+        #        curl -X POST \
+        #          "https://generativelanguage.googleapis.com/v1beta/models/$FAST:generateContent?key=$GEMINI_API_KEY" \
+        #          -H 'Content-Type: application/json' \
+        #          -d '{"contents":[{"parts":[{"text":"<system prompt + job context>"}]}]}'
+        #   3. Parse 'candidates[0].content.parts[0].text' from the JSON response.
+        #   4. Store draft note per job_id for the approval + post-to-Dash pipeline.
+        # SYSTEM PROMPT CONSTRAINT: Write in first-person PM voice. Never say Pending Sale
+        # money is overdue. Be direct, professional, and accountable — not robotic.
+
+    - name: Generate customer follow-up email drafts (Gemini — fast model)
+      shell: bash
+      run: |
+        echo "[DRAFT] Using Gemini to draft customer follow-up emails."
+        echo "  Input: stale job list from servpro-crm-review (48+ hour rule)."
+        echo "  Tone: Tristan's voice — direct, professional, accountable, calm."
+        # TODO: For each stale job:
+        #   Build a prompt with customer name, last touchpoint, job status, and next action.
+        #   Call Gemini API as above. Store the draft email body per job_id.
+        #   Output: subject line + body. Store as Gmail drafts via the crm-review pipeline.
+
+    - name: Generate adjuster / carrier follow-up letters (Gemini — pro model)
+      shell: bash
+      run: |
+        echo "[DRAFT] Using Gemini ($PRO) to draft adjuster/carrier follow-up letters."
+        echo "  Input: supplement discrepancy data, ITEL reports, scope line items."
+        echo "  Tone: Evidence-based, scope-specific, professional — no emotional language."
+        # TODO: For each job with an open supplement request or scope discrepancy:
+        #   Build a prompt with the discrepancy list, supporting evidence, and requested outcome.
+        #   Use the pro model for higher-quality letter output.
+        #   Store draft letter per job_id. Output as both a Gmail draft and a Drive Doc.
+
+    - name: Convert voice notes to polished communication (Gemini — fast model)
+      shell: bash
+      run: |
+        echo "[DRAFT] Converting rough voice-note inputs to polished communication."
+        echo "  Input: raw text or transcribed voice notes from VOICE_NOTE_INPUT env var."
+        VOICE="${VOICE_NOTE_INPUT:-}"
+        if [ -z "$VOICE" ]; then
+          echo "  No VOICE_NOTE_INPUT provided — skipping conversion step."
+        else
+          echo "  Voice note length: ${#VOICE} characters."
+          echo "  Calling Gemini to rewrite as calm, professional customer communication."
+          # TODO: POST voice note text to Gemini with the system prompt:
+          # "Rewrite the following rough notes as polished, professional customer or
+          #  adjuster communication in first-person PM voice. Remove frustration or
+          #  informal language. Keep accountability and directness."
+        fi
+
+    - name: Generate supplement summary letters (Gemini — pro model)
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating supplement summary letters for open supplement requests."
+        echo "  Uses gemini-2.5-pro for highest-quality letter output."
+        # TODO: For each job with a pending supplement:
+        #   List discrepant line items, quantities, unit prices.
+        #   Include supporting evidence references (photos, ITEL, field notes).
+        #   Generate a structured supplement letter addressable to the carrier adjuster.
+
+    - name: Quality-check all drafts for tone and completeness
+      shell: bash
+      run: |
+        echo "[DRAFT] Running tone and completeness check on all generated drafts."
+        echo "  Checks:"
+        echo "    - No 'Pending Sale money is overdue' language"
+        echo "    - First-person PM voice (not reviewer language)"
+        echo "    - Every draft has a next action and a follow-up date"
+        echo "    - No unresolved [PLACEHOLDER] tokens"
+        # TODO: For each generated draft, send a second Gemini call with a
+        # review prompt that checks for the above constraints.
+        # If any constraint fails, regenerate that draft once before flagging.
+
+    - name: Emit Gemini draft generation summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  ServPro Gemini Draft Generation complete (DRAFT MODE)."
+        echo "  All CRM notes, emails, and letters are stored as drafts."
+        echo "  NOTHING has been posted to Dash or sent to anyone."
+        echo "  Proceed to Tristan approval gate before any action."
+        echo "======================================================"

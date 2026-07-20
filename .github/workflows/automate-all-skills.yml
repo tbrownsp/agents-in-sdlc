@@ -1,0 +1,282 @@
+# TRISTAN BROWN — MASTER RESTORATION PM AUTOMATION
+# Source of Truth: Dash CRM (NextGear)
+# Tone: Direct, professional, accountable — never robotic.
+#
+# EXECUTION ORDER (strict; each job waits for the previous):
+#   Step 1 — Google Chat Lead Monitoring    (new: Chat leads → pipeline queue)
+#   Step 2 — Workspace Sync & Intake        (Modules 2 & 3 — all Google apps)
+#   Step 3 — M/W/F Operational Review       (Module 4 — Sheets + Chat drafts)
+#   Step 4 — Google Sheets Tracker Update   (new: full financial dashboard)
+#   Step 5 — CRM Draft Generation           (Module 1 — Gemini AI drafts)
+#   Step 6 — Gemini AI Draft Refinement     (new: quality pass on all drafts)
+#   Step 7 — Vertex AI Analysis             (new: risk scoring, scope validation)
+#   Step 8 — Cloud Workflows Orchestration  (new: deploy/sync GCP infrastructure)
+#   Step 9 — Docs & Site Validation
+#   Step 10 — WAIT FOR TRISTAN APPROVAL     (manual gate via "tristan-approval" environment)
+#   Step 11 — Post Notes to Dash CRM        (EXECUTED LAST, after approval only)
+#   Step 12 — Commit Automated Changes
+
+name: Automate All Agents and Skills
+
+on:
+  # Runs every day at 2:00 AM UTC (UTC-5 = 9 PM CT / UTC-6 = 8 PM CT).
+  # Adjust the cron expression if a different local time is preferred.
+  schedule:
+    - cron: '0 2 * * *'
+  # Allows manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+
+# Least-privilege permissions.
+# `contents: write` is required for the final commit step.
+# `id-token: write` is required for OIDC-based credential exchange (Google Workspace,
+#   Vertex AI, Cloud Workflows, Dash CRM, Workload Identity Federation).
+permissions:
+  contents: write
+  id-token: write
+  actions: read
+
+# Prevent concurrent automation runs to avoid conflicting Dash/Drive writes.
+# cancel-in-progress: false ensures an active run (especially post-approval posting) is never
+# interrupted by a queued run.
+concurrency:
+  group: automate-all-skills
+  cancel-in-progress: false
+
+# ---------------------------------------------------------------------------
+# Step 1 — Google Chat Lead Monitoring
+# Scans Chat spaces for new leads before workspace sync so any leads found
+# are available to the pipeline-intake flow in Step 2.
+# ---------------------------------------------------------------------------
+jobs:
+  google-chat-monitoring:
+    name: "Step 1 — Google Chat Lead Monitoring"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro Google Chat — scan leads and crew threads
+        uses: ./.github/skills/servpro-google-chat
+
+  # ---------------------------------------------------------------------------
+  # Step 2 — Workspace Sync & Intake (Modules 2 & 3)
+  # Syncs all Google apps: Gmail, Drive, Calendar, Tasks, Contacts, Photos,
+  # Docs, Forms, Sheets, and Chat. Processes new leads from Gmail and Chat.
+  # Depends on Chat monitoring so queued leads are available.
+  # ---------------------------------------------------------------------------
+  workspace-sync-and-intake:
+    name: "Step 2 — Workspace Sync & Intake (All Google Apps)"
+    needs: [google-chat-monitoring]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Module 3: Route new leads, draft outreach via Gemini, create Contacts,
+      #           generate Forms links, push to Calendar/Tasks.
+      - name: ServPro Pipeline Intake
+        uses: ./.github/skills/servpro-pipeline-intake
+
+      # Module 2: Sync Gmail labels, Drive folders, Contacts, Tasks, Photos,
+      #           Docs, Forms, Sheets, Chat.
+      - name: ServPro Workspace Sync
+        uses: ./.github/skills/servpro-workspace-sync
+
+  # ---------------------------------------------------------------------------
+  # Step 3 — M/W/F Operational Review (Module 4)
+  # Financial summary, crew audit, photo compliance, meeting protection,
+  # Sheets tracker update, and Chat crew message drafts via Gemini AI.
+  # ---------------------------------------------------------------------------
+  operational-review:
+    name: "Step 3 — M/W/F Operational Review (Module 4)"
+    needs: [workspace-sync-and-intake]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro Ops Review
+        uses: ./.github/skills/servpro-ops-review
+
+  # ---------------------------------------------------------------------------
+  # Step 4 — Google Sheets Tracker Update
+  # Full financial dashboard: weekly tracker, A/R aging, collections dashboard,
+  # crew production log, job pipeline board, and Friday PDF export to Drive.
+  # ---------------------------------------------------------------------------
+  google-sheets-update:
+    name: "Step 4 — Google Sheets Financial Tracker"
+    needs: [operational-review]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro Google Sheets
+        uses: ./.github/skills/servpro-google-sheets
+
+  # ---------------------------------------------------------------------------
+  # Step 5 — CRM Draft Generation (Module 1 — DRAFT ONLY)
+  # Pulls open jobs, flags missing info and docs, identifies blockers,
+  # generates per-job CRM note drafts and Gmail follow-up drafts via Gemini AI.
+  # NEVER posts to Dash or sends emails at this stage.
+  # ---------------------------------------------------------------------------
+  crm-draft-generation:
+    name: "Step 5 — CRM Draft Generation (Gemini AI — Draft Only)"
+    needs: [google-sheets-update]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro CRM Review (Draft only — no posting)
+        uses: ./.github/skills/servpro-crm-review
+
+  # ---------------------------------------------------------------------------
+  # Step 6 — Gemini AI Draft Refinement
+  # Quality pass: converts CRM breakdowns into polished first-person PM notes,
+  # drafts adjuster/supplement letters, converts voice notes, and runs a
+  # tone/completeness check on all generated drafts.
+  # ---------------------------------------------------------------------------
+  gemini-draft-refinement:
+    name: "Step 6 — Gemini AI Draft Refinement"
+    needs: [crm-draft-generation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro Gemini Draft Generation
+        uses: ./.github/skills/servpro-gemini-drafts
+
+  # ---------------------------------------------------------------------------
+  # Step 7 — Vertex AI Analysis (Gemini Enterprise)
+  # Advanced risk scoring, insurance scope validation, supplement forecasting,
+  # and Friday executive summary via Google Cloud Vertex AI.
+  # Uses Workload Identity Federation — no long-lived credentials.
+  # ---------------------------------------------------------------------------
+  vertex-ai-analysis:
+    name: "Step 7 — Vertex AI Analysis (Gemini Enterprise)"
+    needs: [gemini-draft-refinement]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro Vertex AI Analysis
+        uses: ./.github/skills/servpro-vertex-ai
+
+  # ---------------------------------------------------------------------------
+  # Step 8 — Google Cloud Workflows Orchestration
+  # Deploys/syncs Cloud Workflows definitions, Cloud Scheduler jobs,
+  # Pub/Sub triggers, Cloud Run webhook handler, and Secret Manager config.
+  # Runs after all analysis steps so any new workflow triggers are up to date.
+  # ---------------------------------------------------------------------------
+  cloud-workflows-sync:
+    name: "Step 8 — Google Cloud Workflows Orchestration"
+    needs: [vertex-ai-analysis]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ServPro Cloud Workflows
+        uses: ./.github/skills/servpro-cloud-workflows
+
+  # ---------------------------------------------------------------------------
+  # Step 9 — Docs & Site Validation
+  # Validates workshop content, checks links, and publishes to Pages.
+  # ---------------------------------------------------------------------------
+  docs-and-site-validation:
+    name: "Step 9 — Docs & Site Validation"
+    needs: [cloud-workflows-sync]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update Markdown File Index
+        uses: ./.github/skills/update-markdown-file-index
+
+      - name: Check Content Alignment
+        uses: ./.github/skills/check-content-alignment
+
+      - name: Run Localizations Check
+        uses: ./.github/skills/localizations
+
+      - name: Build and Verify Docs
+        uses: ./.github/skills/build-and-verify-docs
+
+      - name: Validate Site via Playwright
+        uses: ./.github/skills/validate-site-playwright
+
+      - name: Publish to Pages
+        uses: ./.github/skills/publish-to-pages
+
+  # ---------------------------------------------------------------------------
+  # Step 10 — WAIT FOR TRISTAN APPROVAL
+  # Manual gate. Nothing posts to Dash or sends communication until Tristan
+  # explicitly approves in the GitHub Actions UI.
+  #
+  # One-time setup required:
+  #   Repository Settings → Environments → Create environment named
+  #   "tristan-approval" → Add Tristan's GitHub account under
+  #   "Required reviewers" and set "Wait timer" to 0.
+  #   GitHub will notify Tristan by email when approval is needed.
+  # ---------------------------------------------------------------------------
+  await-tristan-approval:
+    name: "Step 10 — WAIT FOR TRISTAN APPROVAL"
+    needs: [docs-and-site-validation]
+    runs-on: ubuntu-latest
+    environment:
+      name: tristan-approval
+    steps:
+      - name: Approval checkpoint
+        run: |
+          echo "========================================================"
+          echo "  All drafts have been generated and validated."
+          echo "  Steps completed before this gate:"
+          echo "    1. Google Chat lead monitoring"
+          echo "    2. Full Google Workspace sync (all apps)"
+          echo "    3. M/W/F Operational Review + Sheets update"
+          echo "    4. Google Sheets financial tracker"
+          echo "    5. CRM draft generation (Gemini AI)"
+          echo "    6. Gemini AI draft refinement"
+          echo "    7. Vertex AI risk analysis (Gemini Enterprise)"
+          echo "    8. Google Cloud Workflows sync"
+          echo "    9. Docs & site validation"
+          echo "  Review the artifacts from previous steps, then"
+          echo "  approve this environment gate to post to Dash CRM."
+          echo "  NOTHING has been posted to Dash or sent to anyone yet."
+          echo "========================================================"
+
+  # ---------------------------------------------------------------------------
+  # Step 11 — Post Approved Notes to Dash CRM (EXECUTED LAST)
+  # Only runs after Tristan has manually approved the gate above.
+  # This is the ONLY step that may write to Dash or send communications.
+  # ---------------------------------------------------------------------------
+  post-dash-crm-notes:
+    name: "Step 11 — Post Notes to Dash CRM (Executed LAST)"
+    needs: [await-tristan-approval]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Post Approved Notes to Dash
+        uses: ./.github/skills/servpro-post-dash-notes
+
+  # ---------------------------------------------------------------------------
+  # Step 12 — Commit Automated Changes
+  # Commits any reports, logs, or config changes generated by previous steps.
+  # Runs only after the Dash post step confirms clean completion.
+  # ---------------------------------------------------------------------------
+  commit-changes:
+    name: "Step 12 — Commit Automated Changes"
+    needs: [post-dash-crm-notes]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Make Repo Contribution
+        uses: ./.github/skills/make-repo-contribution

@@ -1,0 +1,164 @@
+name: 'ServPro Ops Review'
+description: >
+  SERVPRO Bartlett/Cordova Monday/Wednesday/Friday operational review.
+  Produces a financial summary, crew schedule audit, photo compliance
+  check, and weekly management accountability tracker. Protects mandatory
+  calendar blocks. Updates Google Sheets tracker and drafts crew Chat messages.
+  All outputs are drafts for Tristan's review.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key JSON
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
+#   GSHEETS_TRACKER_ID                     — Weekly Management Accountability Tracker ID
+#   GOOGLE_CHAT_CREW_SPACE_ID              — Chat space ID for crew coordination
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token or OAuth credentials
+#   GEMINI_API_KEY                         — Google AI Studio API key (for AI summaries)
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Operational review covers only Tristan's"
+        echo "  assigned jobs. Other team members' jobs are excluded."
+        echo "======================================================"
+        # TODO: Pull job list from Dash filtered to Tristan's user ID.
+
+    - name: Determine review day
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        echo "Today is $DAY."
+        echo "Day-specific behavior:"
+        echo "  → Monday:    Full crew audit + weekly calendar audit + Monday crew texts."
+        echo "  → Wednesday: Midweek KPI and blocker check (subset of steps)."
+        echo "  → Friday:    Full weekly tracker build + closeout report."
+        echo "  → Other days: Financial summary and 48-hour stale check only."
+        # TODO: Use $DAY to gate the following steps:
+        #   - Run "Crew schedule audit" step only on Monday (DAY == "Monday")
+        #   - Run "Friday weekly tracker update" step fully only on Friday
+        #   - All other steps (financial summary, photo compliance,
+        #     48-hour stale check, meeting protection) run every day.
+
+    - name: Financial summary (Module 4 — Financial Review)
+      shell: bash
+      run: |
+        echo "[DRAFT] Building financial summary."
+        echo "  - Total collected this week"
+        echo "  - Total owed (A/R outstanding)"
+        echo "  - Per-job money status and exact next step/blocker"
+        # TODO: Query Dash for invoice status per job. Summarize:
+        #   collected / invoiced-not-collected / blocked (mortgage, carrier, etc.)
+
+    - name: Crew schedule audit — Monday (Module 4 — Crew Audit)
+      shell: bash
+      run: |
+        echo "[DRAFT] Auditing full weekly calendar for crew locations and times."
+        echo "[DRAFT] Drafting Monday morning crew text prompting group chat update."
+        # TODO: Use Calendar API to pull weekly crew schedule.
+        # Draft texts for each crew lead prompting them to post the weekly plan
+        # to the customer group chat. Store as drafts — do NOT send automatically.
+
+    - name: Photo compliance check (Module 4 — Photo Compliance)
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — 48-Hour Photo Compliance Rule:"
+        echo "  Any crew on site for 48+ hours without posting photos"
+        echo "  triggers a draft alert email to that crew."
+        echo "======================================================"
+        echo "[DRAFT] Auditing Google Photos for each active job site."
+        # TODO: For each WIP job, check the last photo upload date in Google Photos.
+        # If > 48 hours with no upload, draft an alert email to the crew lead.
+        # Store as a Gmail draft — do NOT send automatically.
+
+    - name: 48-hour stale job check
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — 48-Hour Follow-Up Rule:"
+        echo "  No active job (especially A/R or Pending Sale) may go"
+        echo "  48 hours without a follow-up, communication, or CRM note."
+        echo "  Flagging all jobs exceeding this threshold."
+        echo "======================================================"
+        # TODO: Query Dash for last CRM note date and last customer contact date
+        # per job. Flag any job where both exceed 48 hours — output a stale list.
+
+    - name: Meeting protection audit (Module 4 — Meeting Protection)
+      shell: bash
+      run: |
+        echo "[DRAFT] Verifying mandatory calendar blocks are in place:"
+        echo "  - Morning office meetings"
+        echo "  - Morning A/R Regional"
+        echo "  - 2:00–3:00 PM Mitigation (as available)"
+        echo "  - Thursday morning 1+ hour sync with Elizabeth"
+        echo "  - Monday mornings (2 hours focus)"
+        echo "  - All day Friday strictly in-office"
+        # TODO: Use Calendar API to verify each required block exists for the
+        # current and next week. Draft calendar events for any missing blocks.
+
+    - name: Friday weekly tracker update (Module 4 — Friday Tracker)
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        if [ "$DAY" = "Friday" ]; then
+          echo "[DRAFT] Building Weekly Management Accountability Tracker."
+          echo "  Populating Sheets tracker tab: $(date +'Week of %Y-%m-%d')"
+          # TODO: Use Sheets API (values.batchUpdate) to upsert all job rows
+          # into the weekly tracker tab in $GSHEETS_TRACKER_ID.
+          # Export tracker as PDF via Sheets export endpoint and upload to
+          # $GDRIVE_ROOT_FOLDER_ID / Weekly Trackers / $(date +%Y-%m-%d).pdf
+        else
+          echo "  Not Friday — writing midweek KPI update to Sheets only."
+          # TODO: Update only the KPI summary row (totals, stale count, A/R aging).
+        fi
+
+    - name: Draft Monday crew text messages via Google Chat
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        if [ "$DAY" = "Monday" ]; then
+          echo "[DRAFT] Drafting Monday morning crew coordination messages."
+          echo "  Target space: $GOOGLE_CHAT_CREW_SPACE_ID"
+          echo "  Content: Weekly plan prompt — ask each crew lead to post schedule"
+          echo "           to customer group chat and confirm site start time."
+          # TODO: For each crew lead with an active WIP job this week:
+          #   Draft a Chat message: "Good morning [name] — please post this week's
+          #   schedule to the [job] customer group chat and confirm start time.
+          #   Photos due by [date]."
+          # Store drafts — do NOT send until Tristan approves.
+        else
+          echo "  Not Monday — skipping Monday crew text drafts."
+        fi
+
+    - name: Generate Gemini AI ops summary
+      shell: bash
+      run: |
+        echo "[DRAFT] Using Gemini AI to generate the ops review summary."
+        echo "  Model: gemini-2.0-flash"
+        echo "  Input: financial summary, stale alerts, crew audit, meeting protection status."
+        # TODO: Collect the outputs from the above steps (financial totals, stale job list,
+        # crew audit findings, meeting gaps). Build a structured prompt and call Gemini API:
+        #   curl -X POST \
+        #     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
+        #     -H 'Content-Type: application/json' \
+        #     -d '{"contents":[{"parts":[{"text":"<ops summary prompt>"}]}]}'
+        # Output: a concise, plain-English ops summary with top-3 priority actions
+        # for today. Stored as a draft — surfaced in the approval review.
+
+    - name: Emit ops review draft report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Ops Review complete (DRAFT MODE)."
+        echo "  Financial summary, crew audit, photo compliance,"
+        echo "  Sheets tracker update, Chat message drafts, and"
+        echo "  Gemini ops summary are all queued for Tristan's review."
+        echo "  No actions have been taken or messages sent."
+        echo "======================================================"

@@ -1,0 +1,114 @@
+name: 'ServPro Google Sheets'
+description: >
+  SERVPRO Bartlett/Cordova Google Sheets financial tracker and job pipeline dashboard.
+  Maintains Weekly Management Accountability Tracker, A/R aging summary, collections
+  dashboard, crew production log, and job pipeline board. Reads from Dash CRM, writes
+  to Sheets, exports PDF snapshots to Drive. All writes are draft-only until approved.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key (Sheets + Drive scope)
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" Drive folder
+#   GSHEETS_TRACKER_ID                     — Spreadsheet ID for the weekly tracker
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Only Tristan's assigned jobs are written to"
+        echo "  Sheets. Other team members' jobs are excluded."
+        echo "======================================================"
+        # TODO: Query Dash API ($DASH_API_BASE_URL) with $DASH_API_TOKEN.
+        # Filter: assigned_to=Tristan, status!=Closed.
+
+    - name: Pull job data from Dash CRM
+      shell: bash
+      run: |
+        echo "[DRAFT] Pulling current job data from Dash CRM."
+        echo "  Fields: job name, number, type, stage, customer, insurance,"
+        echo "          invoiced amount, collected amount, last contact, open tasks."
+        # TODO: GET $DASH_API_BASE_URL/jobs?status=open&assignee=tristan
+        # Map to Sheets column schema: job_name | job_number | type | stage |
+        # customer | carrier | invoiced | collected | outstanding | last_contact |
+        # blocker | next_action | due_date.
+
+    - name: Update Weekly Management Accountability Tracker
+      shell: bash
+      run: |
+        echo "[DRAFT] Updating Weekly Management Accountability Tracker."
+        echo "  Spreadsheet ID: $GSHEETS_TRACKER_ID"
+        echo "  Tab: Week of $(date +'%Y-%m-%d')"
+        echo "  Columns: Job | Stage | Invoiced | Collected | Outstanding | Blocker | Next Action | Due"
+        # TODO: Use Sheets API (batchUpdate / values.update) to upsert one row per job.
+        # Impersonate $GOOGLE_IMPERSONATED_USER via the service account.
+        # Apply conditional formatting: red = A/R > 60 days; yellow = A/R > 30 days.
+        # Log all changes as a draft diff before applying.
+
+    - name: Update A/R Aging Summary tab
+      shell: bash
+      run: |
+        echo "[DRAFT] Updating A/R Aging Summary."
+        echo "  Buckets: Current | 1-30 days | 31-60 days | 61-90 days | 90+ days"
+        echo "  Payer types: Insurance carrier | Mortgage company | Direct customer"
+        # TODO: Calculate aging per invoice from Dash invoice date.
+        # Write to 'A/R Aging' tab. Flag any invoice in 61+ day bucket for escalation.
+        # POLICY: Do NOT label Pending Sale money as 'overdue'.
+
+    - name: Update Collections Dashboard tab
+      shell: bash
+      run: |
+        echo "[DRAFT] Updating Collections Dashboard."
+        echo "  Per-job: Invoiced | Collected | Outstanding | % Collected"
+        echo "  Summary row: totals across all open jobs."
+        # TODO: Compute per-job and total collection metrics from Dash invoice data.
+        # Write to 'Collections' tab with color-coded % collected column.
+
+    - name: Update Crew Production Log tab
+      shell: bash
+      run: |
+        echo "[DRAFT] Updating Crew Production Log."
+        echo "  Source: Google Calendar events (crew/sub on-site events)."
+        echo "  Columns: Date | Job Name | Crew Lead | Hours on Site | Notes"
+        # TODO: Pull Calendar events labeled as crew/sub site visits.
+        # Write to 'Crew Log' tab. Include color logic:
+        #   blue/berry = crew on site | orange = virtual | red = in office.
+
+    - name: Update Job Pipeline Board tab
+      shell: bash
+      run: |
+        echo "[DRAFT] Updating Job Pipeline Board."
+        echo "  All active jobs ordered by risk (stage + last contact age + $ at risk)."
+        echo "  Columns: Priority | Job | Stage | Days Stale | $ At Risk | Blocker | Owner"
+        # TODO: Sort jobs by composite risk score: jobs in A/R > 60d first,
+        # then Pending Sale > 14d, then WIP stale > 7d, then all others.
+
+    - name: Export weekly tracker to PDF and upload to Drive
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        if [ "$DAY" = "Friday" ]; then
+          echo "[DRAFT] Friday export: exporting tracker to PDF."
+          echo "  Destination: $GDRIVE_ROOT_FOLDER_ID / Weekly Trackers / $(date +'%Y-%m-%d').pdf"
+          # TODO: Use Sheets export endpoint:
+          #   GET https://docs.google.com/spreadsheets/d/$GSHEETS_TRACKER_ID/export?format=pdf
+          # Upload resulting PDF to Drive via Drive API (files.create with multipart upload).
+          # Log the file ID and share link.
+        else
+          echo "  Not Friday — skipping PDF export. (Runs automatically on Fridays.)"
+        fi
+
+    - name: Emit Sheets update summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  ServPro Google Sheets update complete (DRAFT MODE)."
+        echo "  All Sheets writes and PDF exports are queued for"
+        echo "  Tristan's review. No data has been written yet."
+        echo "======================================================"

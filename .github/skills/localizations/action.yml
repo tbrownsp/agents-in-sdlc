@@ -1,0 +1,120 @@
+name: 'Localizations'
+description: >
+  Localize Copilot Workshops content into all supported target locales.
+  Compares the English source tree against docs/<locale>/ for each locale
+  defined in rules/, then creates, updates, or removes localized files.
+  Preserves Markdown structure, code, URLs, and frontmatter keys.
+
+runs:
+  using: composite
+  steps:
+    - name: Identify target locales
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Discovering target locales from rules/ directory."
+        echo "======================================================"
+        LOCALES=$(ls "$GITHUB_ACTION_PATH/rules/"*.md 2>/dev/null | \
+          xargs -I{} basename {} .md | sort)
+        if [ -z "$LOCALES" ]; then
+          echo "ERROR: No locale rule files found under rules/. Aborting."
+          exit 1
+        fi
+        echo "  Target locales:"
+        echo "$LOCALES" | sed 's/^/    /'
+        echo "$LOCALES" > /tmp/localization-locales.txt
+
+    - name: Identify English source files
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Collecting English source Markdown files from docs/."
+        echo "======================================================"
+        LOCALE_DIRS=$(cat /tmp/localization-locales.txt | tr '\n' ' ')
+        EXCLUDE_PATTERN=""
+        for locale in $LOCALE_DIRS; do
+          EXCLUDE_PATTERN="$EXCLUDE_PATTERN ! -path 'docs/${locale}/*'"
+        done
+        # Find all English source .md files (exclude locale dirs and _images).
+        find docs -name '*.md' \
+          ! -path 'docs/es-es/*' \
+          ! -path 'docs/ja-jp/*' \
+          ! -path 'docs/ko-kr/*' \
+          ! -path 'docs/pt-br/*' \
+          ! -path 'docs/zh-cn/*' \
+          ! -path 'docs/_images/*' \
+          | sort > /tmp/localization-source-files.txt
+        COUNT=$(wc -l < /tmp/localization-source-files.txt)
+        echo "  English source files found: $COUNT"
+
+    - name: Detect changes since last localization
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Detecting which source files have changed."
+        echo "======================================================"
+        git fetch origin main --depth=1 2>/dev/null || true
+        CHANGED=$(git diff origin/main...HEAD --name-only -- docs/ 2>/dev/null | \
+          grep '\.md$' | \
+          grep -v 'docs/es-es\|docs/ja-jp\|docs/ko-kr\|docs/pt-br\|docs/zh-cn' \
+          || true)
+        if [ -z "$CHANGED" ]; then
+          echo "  No source changes detected — checking for new files not yet localized."
+        else
+          echo "  Changed source files:"
+          echo "$CHANGED" | sed 's/^/    /'
+        fi
+
+    - name: Assess localization status per locale
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Assessing localization coverage per locale."
+        echo "======================================================"
+        while IFS= read -r locale; do
+          echo "  --- $locale ---"
+          TOTAL=$(wc -l < /tmp/localization-source-files.txt)
+          LOCALIZED=0
+          MISSING=0
+          while IFS= read -r src; do
+            # Determine expected localized path.
+            REL="${src#docs/}"
+            TARGET="docs/$locale/$REL"
+            if [ -f "$TARGET" ]; then
+              LOCALIZED=$((LOCALIZED + 1))
+            else
+              MISSING=$((MISSING + 1))
+              echo "    MISSING: $TARGET"
+            fi
+          done < /tmp/localization-source-files.txt
+          echo "    Localized: $LOCALIZED / $TOTAL | Missing: $MISSING"
+        done < /tmp/localization-locales.txt
+
+    - name: Check for orphaned localized files
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking for orphaned localized files (source deleted)."
+        echo "======================================================"
+        while IFS= read -r locale; do
+          find "docs/$locale" -name '*.md' 2>/dev/null | while IFS= read -r localized; do
+            # Reconstruct the expected English source path.
+            REL="${localized#docs/$locale/}"
+            SOURCE="docs/$REL"
+            if [ ! -f "$SOURCE" ]; then
+              echo "  ORPHAN ($locale): $localized — source $SOURCE no longer exists. Consider deleting."
+            fi
+          done
+        done < /tmp/localization-locales.txt
+
+    - name: Emit localization status report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Localization assessment complete."
+        echo "  Review MISSING and ORPHAN entries above."
+        echo "  Localization of missing/changed files requires an AI"
+        echo "  agent pass (translator → evaluator) using the locale"
+        echo "  rules in .github/skills/localizations/rules/."
+        echo "  See SKILL.md for the full translator/evaluator procedure."
+        echo "======================================================"

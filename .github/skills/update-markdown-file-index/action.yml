@@ -1,0 +1,88 @@
+name: 'Update Markdown File Index'
+description: >
+  Update a Markdown file section with an index/table of files from a specified
+  folder. Scans the target file, discovers files matching a pattern, then
+  replaces or adds an index section. Preserves existing document structure.
+
+runs:
+  using: composite
+  steps:
+    - name: Scan skills README for existing index sections
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Scanning .github/skills/README.md for index sections."
+        echo "======================================================"
+        TARGET=".github/skills/README.md"
+        if [ ! -f "$TARGET" ]; then
+          echo "ERROR: $TARGET not found."
+          exit 1
+        fi
+        HEADINGS=$(grep -n '^##' "$TARGET" || true)
+        echo "  Existing sections:"
+        echo "$HEADINGS" | sed 's/^/    /'
+
+    - name: Discover skill folders and their SKILL.md metadata
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Discovering all skills in .github/skills/."
+        echo "======================================================"
+        echo "  Skill | Name | Description"
+        echo "  ------|------|------------"
+        for dir in .github/skills/*/; do
+          skill=$(basename "$dir")
+          skill_md="$dir/SKILL.md"
+          if [ -f "$skill_md" ]; then
+            NAME=$(grep '^name:' "$skill_md" | head -1 | sed 's/^name: *//')
+            DESC=$(grep '^description:' "$skill_md" | head -1 | sed 's/^description: *//' | cut -c1-80)
+            echo "  $skill | $NAME | $DESC"
+          else
+            echo "  $skill | (no SKILL.md) | —"
+          fi
+        done
+
+    - name: Check for action.yml coverage
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking which skills have action.yml files."
+        echo "======================================================"
+        for dir in .github/skills/*/; do
+          skill=$(basename "$dir")
+          if [ -f "$dir/action.yml" ]; then
+            echo "  ✓  $skill"
+          else
+            echo "  ✗  $skill (missing action.yml)"
+          fi
+        done
+
+    - name: Validate README index is current
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Validating README.md index matches actual skill folders."
+        echo "======================================================"
+        MISSING_FROM_README=0
+        for dir in .github/skills/*/; do
+          skill=$(basename "$dir")
+          [ "$skill" = "README.md" ] && continue
+          if ! grep -q "$skill" .github/skills/README.md 2>/dev/null; then
+            echo "  WARNING: '$skill' folder not referenced in .github/skills/README.md"
+            MISSING_FROM_README=$((MISSING_FROM_README + 1))
+          fi
+        done
+        if [ "$MISSING_FROM_README" -eq 0 ]; then
+          echo "  README.md index is current — all skills are listed."
+        else
+          echo "  $MISSING_FROM_README skill(s) missing from README.md — update the index."
+        fi
+
+    - name: Emit update-markdown-file-index summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  update-markdown-file-index complete."
+        echo "  Review findings above and update .github/skills/README.md"
+        echo "  if any skills are missing from the index table."
+        echo "======================================================"
