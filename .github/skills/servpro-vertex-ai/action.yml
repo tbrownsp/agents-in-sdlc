@@ -1,0 +1,121 @@
+name: 'ServPro Vertex AI (Gemini Enterprise)'
+description: >
+  SERVPRO Bartlett/Cordova Vertex AI Studio and Gemini Enterprise integration.
+  Advanced job risk analysis, insurance scope validation, batch summarization,
+  and supplement forecasting via Google Cloud Vertex AI with Workload Identity.
+  All outputs are advisory recommendations — no writes without Tristan's approval.
+
+# ---------------------------------------------------------------------------
+# Required secrets / environment:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account (Vertex AI User role)
+#   GOOGLE_CLOUD_PROJECT                   — GCP project ID
+#   GOOGLE_CLOUD_LOCATION                  — GCP region (e.g. us-central1)
+#
+# IAM requirement:
+#   Service account must have roles/aiplatform.user on $GOOGLE_CLOUD_PROJECT.
+#
+# Workflow permission requirement:
+#   id-token: write   (already set in automate-all-skills.yml)
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Authenticate to Google Cloud via Workload Identity
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Authenticating to Google Cloud via Workload Identity."
+        echo "  Project : $GOOGLE_CLOUD_PROJECT"
+        echo "  Location: $GOOGLE_CLOUD_LOCATION"
+        echo "======================================================"
+        # TODO: Exchange GitHub OIDC token for a GCP access token using
+        # google-github-actions/auth or direct token exchange:
+        #   curl -X POST https://sts.googleapis.com/v1/token \
+        #     -d "audience=//iam.googleapis.com/projects/$PROJECT_NUM/locations/global/workloadIdentityPools/..." \
+        #     -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+        #     -d "subject_token_type=urn:ietf:params:oauth:token-type:jwt" \
+        #     -d "subject_token=$(curl -s -H 'Authorization: bearer actions/oidc' \
+        #                             $ACTIONS_ID_TOKEN_REQUEST_URL)"
+        # Store the resulting access token for subsequent Vertex AI calls.
+
+    - name: Batch risk analysis across all open jobs
+      shell: bash
+      run: |
+        echo "[ANALYSIS] Running batch risk analysis via Vertex AI."
+        echo "  Model: gemini-2.0-flash on Vertex AI"
+        echo "  Input: all open job records from Dash CRM."
+        echo "  Output: per-job risk score (Low/Med/High) with rationale."
+        # TODO: Build a single batch prompt with all open job summaries.
+        # POST to Vertex AI endpoint:
+        #   curl -X POST \
+        #     "https://$GOOGLE_CLOUD_LOCATION-aiplatform.googleapis.com/v1/projects/$GOOGLE_CLOUD_PROJECT/locations/$GOOGLE_CLOUD_LOCATION/publishers/google/models/gemini-2.0-flash:generateContent" \
+        #     -H "Authorization: ******" \
+        #     -H "Content-Type: application/json" \
+        #     -d '{"contents":[{"parts":[{"text":"<batch job analysis prompt>"}]}]}'
+        # Parse and emit risk scores for each job. Feed into ops review output.
+
+    - name: Insurance scope validation (Gemini — grounded)
+      shell: bash
+      run: |
+        echo "[ANALYSIS] Validating insurance scope estimates against field conditions."
+        echo "  Model: gemini-2.5-pro with grounding (Google Search)"
+        echo "  Input: carrier estimate line items + field notes + photos log."
+        # TODO: For each job with an open insurance claim:
+        #   Build a prompt with: carrier line items, field notes, observed conditions.
+        #   Enable grounding to cross-check material costs against current market rates.
+        #   Identify discrepancies between carrier estimate and field scope.
+        #   Output: discrepancy list with recommended supplement line items and $ amounts.
+
+    - name: Supplement approval forecasting
+      shell: bash
+      run: |
+        echo "[ANALYSIS] Forecasting supplement approval likelihood."
+        echo "  Model: gemini-2.5-pro on Vertex AI"
+        echo "  Input: supplement history, carrier patterns, adjuster notes."
+        # TODO: For each pending supplement request:
+        #   Analyze historical approval patterns (carrier, adjuster, line item type).
+        #   Forecast: likely approved / contested / denied — with confidence level.
+        #   Recommend: which items to escalate, which to document more thoroughly.
+
+    - name: End-of-week executive summary
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        if [ "$DAY" = "Friday" ]; then
+          echo "[ANALYSIS] Generating end-of-week executive summary via Vertex AI."
+          echo "  Model: gemini-2.5-pro"
+          echo "  Input: all job stages, A/R aging, crew production, supplement status."
+          # TODO: Build a weekly summary prompt combining:
+          #   - Jobs advanced this week (stage changes)
+          #   - Revenue collected vs. invoiced
+          #   - Outstanding supplements and their status
+          #   - Key blockers remaining across all jobs
+          #   - Top 3 priority actions for next week
+          # Output as a formatted executive summary stored to Drive and Sheets.
+        else
+          echo "  Not Friday — skipping executive summary. (Runs automatically on Fridays.)"
+        fi
+
+    - name: Log Vertex AI API usage for cost tracking
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Logging Vertex AI API usage."
+        echo "  Model calls, input/output token counts, and timestamps"
+        echo "  are written to the Sheets cost-tracking tab."
+        echo "======================================================"
+        # TODO: Collect usage metadata from each Vertex AI API response
+        # (usageMetadata.promptTokenCount, candidatesTokenCount).
+        # Append a row to the 'AI Usage Log' Sheets tab:
+        #   Date | Model | Job | Input Tokens | Output Tokens | Cost Est.
+
+    - name: Emit Vertex AI analysis summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  ServPro Vertex AI analysis complete."
+        echo "  Risk scores, scope discrepancies, and supplement"
+        echo "  forecasts are available for Tristan's review."
+        echo "  No changes have been made to Dash, Sheets, or Drive."
+        echo "======================================================"

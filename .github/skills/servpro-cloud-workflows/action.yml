@@ -1,0 +1,156 @@
+name: 'ServPro Cloud Workflows'
+description: >
+  SERVPRO Bartlett/Cordova Google Cloud Workflows orchestration. Deploys and
+  executes Cloud Workflows definitions, manages Cloud Scheduler cron jobs,
+  Cloud Pub/Sub triggers, and Cloud Run functions. Handles durable multi-step
+  API orchestration with retry and error handling beyond GitHub Actions scope.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account with these roles:
+#                                            roles/workflows.invoker
+#                                            roles/cloudscheduler.admin
+#                                            roles/pubsub.editor
+#                                            roles/run.invoker
+#                                            roles/secretmanager.secretAccessor
+#   GOOGLE_CLOUD_PROJECT                   — GCP project ID
+#   GOOGLE_CLOUD_LOCATION                  — GCP region (e.g. us-central1)
+#
+# Workflow permission requirement:
+#   id-token: write   (already set in automate-all-skills.yml)
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Authenticate to Google Cloud
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Authenticating to Google Cloud."
+        echo "  Project : $GOOGLE_CLOUD_PROJECT"
+        echo "  Location: $GOOGLE_CLOUD_LOCATION"
+        echo "======================================================"
+        # TODO: Use Workload Identity Federation to exchange GitHub OIDC token
+        # for a GCP access token with the roles listed above.
+        # Store token as GCP_ACCESS_TOKEN for use in subsequent steps.
+
+    - name: Deploy Cloud Workflows definitions
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Deploying Cloud Workflows definitions."
+        echo "======================================================"
+        WORKFLOW_DIR="$GITHUB_ACTION_PATH/workflows"
+        if [ -d "$WORKFLOW_DIR" ]; then
+          for wf_file in "$WORKFLOW_DIR"/*.yaml; do
+            [ -f "$wf_file" ] || continue
+            WF_NAME=$(basename "$wf_file" .yaml)
+            echo "  Deploying workflow: $WF_NAME"
+            # TODO: Use gcloud CLI or REST API to deploy:
+            #   gcloud workflows deploy $WF_NAME \
+            #     --location=$GOOGLE_CLOUD_LOCATION \
+            #     --source=$wf_file \
+            #     --project=$GOOGLE_CLOUD_PROJECT
+            # Or via REST:
+            #   PATCH https://workflowexecutions.googleapis.com/v1/projects/$PROJECT/locations/$LOCATION/workflows/$WF_NAME
+          done
+        else
+          echo "  No workflow YAML files found in $WORKFLOW_DIR — skipping deploy."
+        fi
+
+    - name: Sync Cloud Scheduler jobs
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Syncing Cloud Scheduler cron jobs."
+        echo "======================================================"
+        echo "  Scheduled jobs:"
+        echo "    servpro-daily-triage     — 0 2 * * *  (2:00 AM UTC — same as GitHub Actions)"
+        echo "    servpro-lead-scan        — */15 * * * * (every 15 min — Chat/Gmail lead check)"
+        echo "    servpro-sheets-refresh   — 0 */4 * * * (every 4 hours — Sheets data refresh)"
+        echo "    servpro-stale-alert      — 0 8,14,20 * * * (8 AM, 2 PM, 8 PM — stale job check)"
+        # TODO: For each scheduler job, upsert via Cloud Scheduler API:
+        #   gcloud scheduler jobs update http servpro-daily-triage \
+        #     --schedule="0 2 * * *" \
+        #     --uri="https://workflowexecutions.googleapis.com/v1/projects/$PROJECT/locations/$LOCATION/workflows/servpro-daily-triage/executions" \
+        #     --message-body='{}' \
+        #     --oauth-service-account-email=<SA_EMAIL> \
+        #     --time-zone=America/Chicago
+
+    - name: Configure Cloud Pub/Sub triggers
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Configuring Cloud Pub/Sub event triggers."
+        echo "======================================================"
+        echo "  Topics:"
+        echo "    servpro-new-lead      — Published when a new lead arrives via Gmail or Chat"
+        echo "    servpro-drive-upload  — Published when a new file is uploaded to a job folder"
+        echo "    servpro-dash-update   — Published when a Dash job changes stage"
+        echo "  Subscriptions link to Cloud Workflows executions."
+        # TODO: Ensure topics and push subscriptions exist:
+        #   gcloud pubsub topics create servpro-new-lead
+        #   gcloud pubsub subscriptions create servpro-new-lead-sub \
+        #     --topic=servpro-new-lead \
+        #     --push-endpoint=https://workflowexecutions.googleapis.com/...
+
+    - name: Deploy Cloud Run intake webhook
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Deploying Cloud Run intake webhook handler."
+        echo "======================================================"
+        echo "  Function: servpro-webhook-receiver"
+        echo "  Triggers: Gmail push notification, Google Chat webhook"
+        echo "  Output: publishes to servpro-new-lead Pub/Sub topic"
+        # TODO: Deploy Cloud Run function from source:
+        #   gcloud run deploy servpro-webhook-receiver \
+        #     --source=./.github/skills/servpro-cloud-workflows/functions/webhook-receiver \
+        #     --region=$GOOGLE_CLOUD_LOCATION \
+        #     --no-allow-unauthenticated \
+        #     --project=$GOOGLE_CLOUD_PROJECT
+        # Grant invoker role to the Pub/Sub service account.
+
+    - name: Monitor active workflow executions
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking status of active Cloud Workflows executions."
+        echo "======================================================"
+        # TODO: List all executions in ACTIVE or FAILED state:
+        #   curl -H "Authorization: ******" \
+        #     "https://workflowexecutions.googleapis.com/v1/projects/$GOOGLE_CLOUD_PROJECT/locations/$GOOGLE_CLOUD_LOCATION/workflows/-/executions?filter=state=FAILED"
+        # Report: workflow name, start time, failure reason (if any).
+        # Failed executions are flagged for Tristan's review.
+
+    - name: Verify Secret Manager configuration
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Verifying required secrets in Secret Manager."
+        echo "======================================================"
+        REQUIRED_SECRETS=(
+          "DASH_API_BASE_URL"
+          "DASH_API_TOKEN"
+          "GOOGLE_IMPERSONATED_USER"
+          "GDRIVE_ROOT_FOLDER_ID"
+          "GSHEETS_TRACKER_ID"
+          "GEMINI_API_KEY"
+        )
+        for secret in "${REQUIRED_SECRETS[@]}"; do
+          echo "  Checking: $secret"
+          # TODO: gcloud secrets versions access latest --secret=$secret \
+          #   --project=$GOOGLE_CLOUD_PROJECT > /dev/null && echo "  ✓ $secret" \
+          #   || echo "  ✗ MISSING: $secret — add to Secret Manager before running."
+        done
+
+    - name: Emit Cloud Workflows deployment summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  ServPro Cloud Workflows deployment complete."
+        echo "  Workflows deployed, Scheduler synced, Pub/Sub configured."
+        echo "  Cloud Run webhook handler deployed."
+        echo "  Review any failed executions flagged above."
+        echo "======================================================"

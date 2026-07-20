@@ -3,15 +3,18 @@ description: >
   SERVPRO Bartlett/Cordova Dash CRM truth review and draft generation.
   Pulls all of Tristan's open jobs, produces per-job status breakdowns,
   identifies missing info and docs, flags stale communication, and generates
-  CRM note drafts and Gmail follow-up drafts. DRAFT ONLY — nothing is posted
-  to Dash or sent until Tristan explicitly approves.
+  CRM note drafts and Gmail follow-up drafts via Gemini AI. DRAFT ONLY —
+  nothing is posted to Dash or sent until Tristan explicitly approves.
 
 # ---------------------------------------------------------------------------
 # Required secrets:
-#   DASH_API_BASE_URL   — Dash CRM base URL
-#   DASH_API_TOKEN      — Dash CRM API token or OAuth credentials
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token or OAuth credentials
 #   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — For Gmail draft creation
 #   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GEMINI_API_KEY                         — Google AI Studio API key (for AI-assisted drafts)
+#   GOOGLE_CLOUD_PROJECT                   — GCP project ID (Vertex AI enterprise mode)
+#   GOOGLE_CLOUD_LOCATION                  — GCP region (Vertex AI enterprise mode)
 # ---------------------------------------------------------------------------
 
 runs:
@@ -79,31 +82,42 @@ runs:
         # Flag jobs where both timestamps are > 48 hours ago.
         # For each stale job: last touchpoint date, type, recommended follow-up action.
 
-    - name: Draft CRM notes (Step 6 — DRAFT ONLY)
+    - name: Draft CRM notes via Gemini AI (Step 6 — DRAFT ONLY)
       shell: bash
       run: |
-        echo "[DRAFT] Generating per-job CRM notes in Dash-ready format."
+        echo "[DRAFT] Using Gemini AI to generate per-job CRM notes."
+        echo "  Model: gemini-2.0-flash (Google AI Studio or Vertex AI)"
         echo "  Format: Current Status | Recent Action | Blocker | Next Action | Follow-up date."
-        echo "  Written in first-person PM language."
+        echo "  Voice: First-person PM — direct, professional, accountable."
         echo "  POLICY: These are DRAFTS. Nothing is posted to Dash until approved."
-        # TODO: For each job, generate a structured CRM note following the formula:
-        #   1. Current status
-        #   2. Recent action
-        #   3. Blocker / dependency
-        #   4. Next action + owner
-        #   5. Follow-up date or trigger
-        # Never say "Pending Sale money is overdue."
-        # Never copy/paste the same note across multiple jobs.
+        # TODO: For each job breakdown produced in steps above:
+        #   Build a structured prompt with: stage, last contact, blocker, next action.
+        #   POST to Gemini API:
+        #     curl -X POST \
+        #       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
+        #       -H 'Content-Type: application/json' \
+        #       -d '{"contents":[{"parts":[{"text":"<prompt>"}]}]}'
+        #   Parse candidates[0].content.parts[0].text from the response.
+        #   Store as draft_crm_note per job_id.
+        # SYSTEM PROMPT CONSTRAINTS:
+        #   - Write in first-person PM voice (never reviewer language).
+        #   - Never say Pending Sale money is overdue.
+        #   - Every note must include a follow-up date or trigger.
+        #   - No duplicate notes across jobs.
 
-    - name: Draft Gmail follow-up emails (Step 7 — DRAFT ONLY)
+    - name: Draft Gmail follow-up emails via Gemini AI (Step 7 — DRAFT ONLY)
       shell: bash
       run: |
-        echo "[DRAFT] Generating follow-up email drafts for stale or action-required jobs."
+        echo "[DRAFT] Using Gemini AI to draft customer and adjuster follow-up emails."
         echo "  Tone: Tristan's voice — direct, professional, accountable, calm."
         echo "  POLICY: Stored as Gmail drafts ONLY. Not sent until Tristan approves."
-        # TODO: For each job requiring customer/adjuster/vendor follow-up,
-        # create a Gmail draft via Gmail API (impersonating $GOOGLE_IMPERSONATED_USER).
-        # Include clear next steps, dates, blockers, and ownership.
+        # TODO: For each job requiring customer/adjuster/vendor follow-up:
+        #   Build a prompt with: customer name, last touchpoint, job status, next action.
+        #   Call Gemini API (same as step above) to generate subject + body.
+        #   Create Gmail draft via Gmail API (users.drafts.create):
+        #     POST https://gmail.googleapis.com/gmail/v1/users/me/drafts
+        #     Body: {"message":{"raw":"<base64-encoded RFC2822 message>"}}
+        # Log each draft ID and recipient for the approval report.
 
     - name: Emit CRM review draft report
       shell: bash

@@ -1,0 +1,105 @@
+name: 'ServPro Google Chat'
+description: >
+  SERVPRO Bartlett/Cordova Google Chat lead monitoring and crew coordination.
+  Scans Chat spaces for new leads and crew updates, routes leads to pipeline-intake,
+  drafts crew coordination replies and follow-up messages for Tristan's approval.
+  All outbound messages are draft-only — never sent without explicit approval.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key (Chat scope)
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GOOGLE_CHAT_LEADS_SPACE_ID             — Space ID for new-leads Chat space
+#   GOOGLE_CHAT_CREW_SPACE_ID              — Space ID for crew coordination space
+#   DASH_API_BASE_URL                      — Dash CRM base URL (to match leads to jobs)
+#   DASH_API_TOKEN                         — Dash CRM API token
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Only threads in Tristan's Chat spaces are"
+        echo "  processed. Off-topic and personal threads are skipped."
+        echo "======================================================"
+
+    - name: Scan new-leads Chat space for unprocessed lead messages
+      shell: bash
+      run: |
+        echo "[DRAFT] Scanning Chat space for new lead messages."
+        echo "  Space: $GOOGLE_CHAT_LEADS_SPACE_ID"
+        echo "  Filter: messages not yet linked to a Dash job number."
+        # TODO: Use Chat API (spaces.messages.list) impersonating
+        # $GOOGLE_IMPERSONATED_USER to list recent messages in the leads space.
+        # For each message not tagged with a Dash job number:
+        #   - Extract: sender name, phone/email, loss type, property address.
+        #   - Flag as a new lead requiring pipeline-intake processing.
+        #   - Do NOT send a reply until Tristan approves.
+
+    - name: Route new Chat leads to pipeline-intake queue
+      shell: bash
+      run: |
+        echo "[DRAFT] Routing new Chat leads to pipeline-intake queue."
+        # TODO: For each new lead detected above, create a pipeline-intake
+        # record (matching the intake schema: name, address, phone, email,
+        # cause of loss, source = 'Google Chat').
+        # Log lead count and source message links for Tristan's review.
+
+    - name: Scan crew coordination space for unanswered messages
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — 4-Hour Crew Response Rule:"
+        echo "  Any crew message with no reply from Tristan in 4+ hours"
+        echo "  is flagged as a stale crew thread."
+        echo "======================================================"
+        echo "[DRAFT] Scanning crew coordination space."
+        echo "  Space: $GOOGLE_CHAT_CREW_SPACE_ID"
+        # TODO: List messages in crew space from the last 48 hours.
+        # For each thread with no reply from $GOOGLE_IMPERSONATED_USER in 4+ hours:
+        #   - Flag crew lead name, message content, timestamp, job address.
+        #   - Draft a follow-up reply from Tristan. Store as a draft — do NOT send.
+
+    - name: Draft crew coordination messages
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating crew coordination message drafts."
+        echo "  Tone: Direct, professional, specific — job name, address, task."
+        # TODO: For each stale crew thread, generate a response that:
+        #   - Confirms or updates schedule for the specific job.
+        #   - Requests photo upload if 48+ hours on site without photos.
+        #   - Requests group chat update to customer if none in 48 hours.
+        # All messages stored as drafts only.
+
+    - name: Draft lead acknowledgment messages
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating lead acknowledgment message drafts."
+        echo "  Tone: Professional, responsive — thank the referrer, confirm intake."
+        # TODO: For each new lead detected, draft a Chat reply acknowledging
+        # receipt and confirming a follow-up timeline.
+        # Messages are draft-only — NOT sent until Tristan approves.
+
+    - name: Check for urgent escalations in Chat
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking for urgent escalation keywords in Chat."
+        echo "  Keywords: urgent, emergency, flooded, fire, smoke, can't reach, no response."
+        echo "======================================================"
+        # TODO: Scan all monitored spaces for messages containing escalation
+        # keywords in the last 4 hours. Flag any matches for immediate review.
+        # Urgent items are surfaced at the top of Tristan's triage output.
+
+    - name: Emit Chat monitoring summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  ServPro Google Chat monitoring complete (DRAFT MODE)."
+        echo "  New leads routed to pipeline-intake queue."
+        echo "  Crew follow-ups and lead acknowledgments are drafted."
+        echo "  No messages have been sent."
+        echo "======================================================"

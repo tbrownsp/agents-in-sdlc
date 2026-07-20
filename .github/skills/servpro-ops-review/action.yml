@@ -3,15 +3,19 @@ description: >
   SERVPRO Bartlett/Cordova Monday/Wednesday/Friday operational review.
   Produces a financial summary, crew schedule audit, photo compliance
   check, and weekly management accountability tracker. Protects mandatory
-  calendar blocks. All outputs are drafts for Tristan's review.
+  calendar blocks. Updates Google Sheets tracker and drafts crew Chat messages.
+  All outputs are drafts for Tristan's review.
 
 # ---------------------------------------------------------------------------
 # Required secrets:
 #   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key JSON
 #   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
 #   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
+#   GSHEETS_TRACKER_ID                     — Weekly Management Accountability Tracker ID
+#   GOOGLE_CHAT_CREW_SPACE_ID              — Chat space ID for crew coordination
 #   DASH_API_BASE_URL                      — Dash CRM base URL
 #   DASH_API_TOKEN                         — Dash CRM API token or OAuth credentials
+#   GEMINI_API_KEY                         — Google AI Studio API key (for AI summaries)
 # ---------------------------------------------------------------------------
 
 runs:
@@ -102,17 +106,59 @@ runs:
     - name: Friday weekly tracker update (Module 4 — Friday Tracker)
       shell: bash
       run: |
-        echo "[DRAFT] Building Weekly Management Accountability Tracker."
-        echo "  Populating spreadsheet/PDF in Drive with all job KPIs."
-        # TODO: Use Sheets API to populate the weekly tracker template in Drive.
-        # Export as PDF if configured. This runs every day but produces the
-        # full weekly summary on Fridays.
+        DAY=$(date +%A)
+        if [ "$DAY" = "Friday" ]; then
+          echo "[DRAFT] Building Weekly Management Accountability Tracker."
+          echo "  Populating Sheets tracker tab: $(date +'Week of %Y-%m-%d')"
+          # TODO: Use Sheets API (values.batchUpdate) to upsert all job rows
+          # into the weekly tracker tab in $GSHEETS_TRACKER_ID.
+          # Export tracker as PDF via Sheets export endpoint and upload to
+          # $GDRIVE_ROOT_FOLDER_ID / Weekly Trackers / $(date +%Y-%m-%d).pdf
+        else
+          echo "  Not Friday — writing midweek KPI update to Sheets only."
+          # TODO: Update only the KPI summary row (totals, stale count, A/R aging).
+        fi
+
+    - name: Draft Monday crew text messages via Google Chat
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        if [ "$DAY" = "Monday" ]; then
+          echo "[DRAFT] Drafting Monday morning crew coordination messages."
+          echo "  Target space: $GOOGLE_CHAT_CREW_SPACE_ID"
+          echo "  Content: Weekly plan prompt — ask each crew lead to post schedule"
+          echo "           to customer group chat and confirm site start time."
+          # TODO: For each crew lead with an active WIP job this week:
+          #   Draft a Chat message: "Good morning [name] — please post this week's
+          #   schedule to the [job] customer group chat and confirm start time.
+          #   Photos due by [date]."
+          # Store drafts — do NOT send until Tristan approves.
+        else
+          echo "  Not Monday — skipping Monday crew text drafts."
+        fi
+
+    - name: Generate Gemini AI ops summary
+      shell: bash
+      run: |
+        echo "[DRAFT] Using Gemini AI to generate the ops review summary."
+        echo "  Model: gemini-2.0-flash"
+        echo "  Input: financial summary, stale alerts, crew audit, meeting protection status."
+        # TODO: Collect the outputs from the above steps (financial totals, stale job list,
+        # crew audit findings, meeting gaps). Build a structured prompt and call Gemini API:
+        #   curl -X POST \
+        #     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
+        #     -H 'Content-Type: application/json' \
+        #     -d '{"contents":[{"parts":[{"text":"<ops summary prompt>"}]}]}'
+        # Output: a concise, plain-English ops summary with top-3 priority actions
+        # for today. Stored as a draft — surfaced in the approval review.
 
     - name: Emit ops review draft report
       shell: bash
       run: |
         echo "======================================================"
         echo "  Ops Review complete (DRAFT MODE)."
-        echo "  All drafts, alerts, and tracker updates are queued"
-        echo "  for Tristan's review before any action is taken."
+        echo "  Financial summary, crew audit, photo compliance,"
+        echo "  Sheets tracker update, Chat message drafts, and"
+        echo "  Gemini ops summary are all queued for Tristan's review."
+        echo "  No actions have been taken or messages sent."
         echo "======================================================"

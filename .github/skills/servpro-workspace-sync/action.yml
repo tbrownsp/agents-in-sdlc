@@ -2,7 +2,7 @@ name: 'ServPro Workspace Sync'
 description: >
   SERVPRO Bartlett/Cordova Google Workspace cross-posting and alignment.
   Syncs Gmail labels, Drive folders, Calendar events, Tasks, Contacts,
-  Google Photos, and Doc/Form templates. Produces a draft-only action
+  Google Photos, Docs, Forms, Sheets, and Chat. Produces a draft-only action
   sheet — no emails are sent, no files are moved without Tristan's approval.
 
 # ---------------------------------------------------------------------------
@@ -11,6 +11,11 @@ description: >
 #   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
 #   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
 #   GMAIL_LABELS_JSON                      — JSON map of label names to label IDs
+#   GSHEETS_TRACKER_ID                     — Weekly Management Accountability Tracker ID
+#   GOOGLE_CHAT_LEADS_SPACE_ID             — Chat space ID for new leads
+#   GOOGLE_CHAT_CREW_SPACE_ID              — Chat space ID for crew coordination
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token
 # ---------------------------------------------------------------------------
 
 runs:
@@ -24,10 +29,8 @@ runs:
         echo "  processed. Jobs assigned to other team members are"
         echo "  skipped without modification."
         echo "======================================================"
-        # TODO: Implement assigned-to-me filter by calling Dash CRM API
-        # using ${{ secrets.DASH_API_TOKEN }} and cross-referencing with
-        # the Google Workspace user set in ${{ secrets.GOOGLE_IMPERSONATED_USER }}.
-        # Both must be added to repository secrets under Settings → Secrets.
+        # TODO: Query Dash API ($DASH_API_BASE_URL) with $DASH_API_TOKEN.
+        # Filter: assigned_to=Tristan, status!=Closed.
         # Hard-stop if a job is not assigned to Tristan — log and skip it.
 
     - name: Sort Gmail by label (Module 2 — Gmail Routing)
@@ -35,38 +38,111 @@ runs:
       run: |
         echo "[DRAFT] Sorting Gmail into labels: A/R | In Progress | Pending Sales | General"
         echo "  Moving non-Tristan job threads out of active view."
-        # TODO: Use Gmail API with $GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON
-        # (impersonating $GOOGLE_IMPERSONATED_USER) to apply label rules.
+        # TODO: Use Gmail API (users.messages.list + users.messages.modify)
+        # impersonating $GOOGLE_IMPERSONATED_USER to apply label rules.
+        # Label mapping (from $GMAIL_LABELS_JSON):
+        #   A/R jobs           → label "A/R"
+        #   WIP jobs           → label "Work in Progress"
+        #   Pending Sale jobs  → label "Pending Sale"
+        #   General/other      → label "General"
         # Generate a draft report of label changes — do NOT apply until approved.
+
+    - name: Sync contacts from Dash to Google Contacts
+      shell: bash
+      run: |
+        echo "[DRAFT] Syncing customer and adjuster contacts from Dash to Google Contacts."
+        echo "  Fields: Name, Phone, Email, Insurance Carrier, Job Address, Job Number."
+        # TODO: For each active Dash job, query customer and adjuster/carrier fields.
+        # Use People API (people.createContact / people.updateContact) to upsert
+        # contacts impersonating $GOOGLE_IMPERSONATED_USER.
+        # Group contacts by label: 'SERVPRO Customers' and 'SERVPRO Adjusters'.
+        # Do NOT sync closed-job contacts — only active job stakeholders.
+
+    - name: Sync Tasks from Dash open items
+      shell: bash
+      run: |
+        echo "[DRAFT] Syncing open Dash tasks to Google Tasks."
+        echo "  Task list: SERVPRO Active Jobs"
+        echo "  Fields: Task title, Job name, Due date, Notes (blocker/next action)."
+        # TODO: For each open task in Dash (per job), upsert to Google Tasks API.
+        # Use tasks.insert / tasks.patch impersonating $GOOGLE_IMPERSONATED_USER.
+        # Mark completed tasks as completed in Google Tasks when Dash marks them done.
+        # Do NOT delete tasks — only mark complete.
 
     - name: Sync signed paperwork to Drive (Module 2 — File Distribution)
       shell: bash
       run: |
         echo "[DRAFT] Scanning for signed Contracts, MSFs, COs, Punch Lists, COS."
         echo "  Uploading to corresponding Drive job folder under $GDRIVE_ROOT_FOLDER_ID."
-        # TODO: Use Drive API to upload new signed docs to the matching job folder.
-        # Match folder by job address/name pattern.
+        # TODO: Use Drive API (files.create with multipart upload) to upload new
+        # signed docs to the matching job folder (matched by job address/number).
+        # Sub-folder structure per job:
+        #   Contracts/ | Photos/ | Estimates/ | Correspondence/ | Docs/
+        # Log each upload with file name, job, timestamp.
 
     - name: Sync job photos (Module 2 — Photo Sync)
       shell: bash
       run: |
         echo "[DRAFT] Pulling job photos from Google Photos."
-        echo "  Verifying address, then pushing to Drive and Dash CRM sub-folder."
-        # TODO: Use Photos API to list recent uploads, match to active job addresses,
-        # and push verified photos to Drive and flag for Dash attachment.
+        echo "  Verifying address match, then pushing to Drive and flagging for Dash."
+        # TODO: Use Photos Library API (mediaItems.search) to list recent uploads
+        # from $GOOGLE_IMPERSONATED_USER. Match photos to active job addresses by
+        # album name or geolocation metadata. For each matched photo:
+        #   - Upload to Drive: $GDRIVE_ROOT_FOLDER_ID/<job>/Photos/
+        #   - Flag the Drive file ID for manual attachment in Dash.
+        # Photos uploaded > 48 hours ago without Drive sync are flagged as stale.
 
-    - name: Auto-fill intake templates (Module 2 — Templates)
+    - name: Auto-fill intake Docs templates
       shell: bash
       run: |
-        echo "[DRAFT] Auto-filling Google Docs/Forms templates with new customer info."
+        echo "[DRAFT] Auto-filling Google Docs intake templates with customer info."
         echo "  Fields: Name, Address, Access, Email, Phone, Cause of Loss, Insurance."
-        # TODO: Use Docs/Forms API to populate templates from current Dash job data.
+        # TODO: For each new job missing a completed intake Doc:
+        #   Use Docs API (documents.batchUpdate) to replace placeholder tokens
+        #   in the intake template with current Dash job data.
+        #   Store the filled Doc in the job's Drive folder: $GDRIVE_ROOT_FOLDER_ID/<job>/Docs/
+        #   Generate a shareable link for the customer.
+
+    - name: Auto-fill and publish Google Forms (customer intake / expectation forms)
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating pre-filled Google Forms links for customer intake."
+        echo "  Form: Customer Information & Expectation Form"
+        # TODO: Use Forms API to retrieve the template form ID and pre-fill fields:
+        #   Name, Address, Email, Phone, Cause of Loss.
+        # Generate a pre-filled form URL for each new job.
+        # Store URL in the job's Drive folder and in the Dash job notes (draft only).
+
+    - name: Update Sheets job pipeline board
+      shell: bash
+      run: |
+        echo "[DRAFT] Updating Google Sheets job pipeline board."
+        echo "  Tracker ID: $GSHEETS_TRACKER_ID"
+        # TODO: Upsert one row per active job into the 'Pipeline' tab of the tracker.
+        # Columns: Job | Stage | Invoiced | Collected | Outstanding | Blocker | Next Action | Due
+        # Apply conditional formatting rules:
+        #   Red  = A/R > 60 days outstanding
+        #   Yellow = A/R 31–60 days outstanding
+        #   Green  = collected / no outstanding balance
+
+    - name: Surface unanswered Google Chat lead threads
+      shell: bash
+      run: |
+        echo "[DRAFT] Scanning Google Chat for unanswered lead and crew threads."
+        echo "  Leads space : $GOOGLE_CHAT_LEADS_SPACE_ID"
+        echo "  Crew space  : $GOOGLE_CHAT_CREW_SPACE_ID"
+        # TODO: Use Chat API (spaces.messages.list) to identify threads with no
+        # response from $GOOGLE_IMPERSONATED_USER in 4+ hours.
+        # Flag each thread: space name, sender, message snippet, timestamp.
+        # Draft a reply for each unanswered thread — do NOT send automatically.
 
     - name: Emit workspace sync draft report
       shell: bash
       run: |
         echo "======================================================"
         echo "  Workspace Sync complete (DRAFT MODE)."
+        echo "  Gmail labels, Contacts, Tasks, Drive, Photos, Docs,"
+        echo "  Forms, Sheets, and Chat threads have been assessed."
         echo "  All proposed changes are queued for Tristan's review."
         echo "  Nothing has been sent, moved, or posted."
         echo "======================================================"
