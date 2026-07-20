@@ -26,6 +26,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Verify preinstalled Node.js
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
+          if [ "$NODE_MAJOR" -lt 20 ]; then
+            echo "Runner does not meet the minimum Node.js requirement. Expected 20+, found major version $NODE_MAJOR. Verify the runner image before rerunning this workflow."
+            exit 1
+          fi
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-website-npm-${{ hashFiles('website/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-website-npm-
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
