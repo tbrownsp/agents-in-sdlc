@@ -166,7 +166,7 @@ Use these skills for recurring workflows:
 
 ## 15 — Personalized Usage Tips
 
-Optimize your workflow with these personalized tips based on your usage patterns:
+Optimize your workflow with these tips based on the standards and workflows above:
 
 1. **Streamline CRM Notes with Voice-to-Text Mapping**: Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Status, Action, Blocker, Next Action, Follow-up Trigger) in the first-person PM voice.
 2. **Maximize the Mon/Wed/Fri Scheduling Pattern via Calendar Automation**: When running the `servpro-ops-review` skill, ask the agent to output a `.ics` formatted block or copy-pasteable details specifically matching your daily standards. Secure your Thursday 1-hour sync with Elizabeth by scheduling it as a recurring blocker automatically.
