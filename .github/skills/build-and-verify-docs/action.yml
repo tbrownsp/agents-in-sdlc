@@ -1,0 +1,90 @@
+name: 'Build and Verify Docs'
+description: >
+  Build, preview, and verify the Copilot Workshops Astro + Starlight site.
+  Runs the canonical verification sequence: clean build, page-count invariant,
+  translation spot-check, and offline lychee link check against website/dist.
+  Use before every commit or PR that touches docs/ or website/.
+
+runs:
+  using: composite
+  steps:
+    - name: Install website dependencies
+      shell: bash
+      working-directory: website
+      run: |
+        echo "======================================================"
+        echo "  Installing website dependencies."
+        echo "======================================================"
+        npm ci
+
+    - name: Clean build
+      shell: bash
+      working-directory: website
+      run: |
+        echo "======================================================"
+        echo "  Running clean Astro build."
+        echo "======================================================"
+        rm -rf dist
+        npm run build
+
+    - name: Page-count invariant
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking page-count invariant."
+        echo "  Expected: (distinct English route slugs × 6 locales) + 1 redirect"
+        echo "======================================================"
+        ENGLISH_ROUTES=$(find docs -maxdepth 2 -name '*.md' \
+          ! -path 'docs/es-es/*' \
+          ! -path 'docs/ja-jp/*' \
+          ! -path 'docs/ko-kr/*' \
+          ! -path 'docs/pt-br/*' \
+          ! -path 'docs/zh-cn/*' | wc -l)
+        BUILT_PAGES=$(find website/dist -name index.html | grep -v 404 | wc -l)
+        EXPECTED=$(( ENGLISH_ROUTES * 6 + 1 ))
+        echo "  English route slugs : $ENGLISH_ROUTES"
+        echo "  Built pages (no 404): $BUILT_PAGES"
+        echo "  Expected            : $EXPECTED"
+        if [ "$BUILT_PAGES" -ne "$EXPECTED" ]; then
+          echo "ERROR: Page count mismatch — built $BUILT_PAGES, expected $EXPECTED."
+          exit 1
+        fi
+        echo "  Page-count invariant: PASS"
+
+    - name: Translation spot-check
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Spot-checking that localized pages carry translated content."
+        echo "======================================================"
+        # Verify the Spanish page has a Spanish title and lang="es-ES".
+        TITLE=$(grep -o '<title>[^<]*</title>' \
+          website/dist/es-es/app/2-add-star-rating/index.html 2>/dev/null || echo "MISSING")
+        LANG=$(grep -o 'lang="[^"]*"' \
+          website/dist/es-es/app/2-add-star-rating/index.html 2>/dev/null | head -1 || echo "MISSING")
+        echo "  es-ES title : $TITLE"
+        echo "  es-ES lang  : $LANG"
+        if echo "$LANG" | grep -q 'lang="es-ES"'; then
+          echo "  Spanish locale: PASS"
+        else
+          echo "WARNING: Spanish locale may be serving English fallback — check docs/es-es/ tree."
+        fi
+
+    - name: Offline link check (lychee)
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Running offline lychee link check."
+        echo "======================================================"
+        mkdir -p /tmp/lychee-root
+        ln -sfn "$GITHUB_WORKSPACE/website/dist" /tmp/lychee-root/copilot-workshops
+        lychee --offline --no-progress --root-dir /tmp/lychee-root \
+          'website/dist/**/*.html'
+
+    - name: Emit build-and-verify summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  build-and-verify-docs complete."
+        echo "  Build: OK | Page count: OK | Link check: OK"
+        echo "======================================================"

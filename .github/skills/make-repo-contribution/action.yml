@@ -1,0 +1,102 @@
+name: 'Make Repo Contribution'
+description: >
+  Enforce the correct contribution workflow for this repository: read guidelines
+  from AUTHORING.md and CONTRIBUTING.md, check for an existing issue, verify
+  branch naming, validate changes with build-and-verify-docs, and commit with
+  the correct Conventional Commit prefix and Co-authored-by trailer.
+
+runs:
+  using: composite
+  steps:
+    - name: Read contribution guidelines
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Reading contribution guidelines."
+        echo "======================================================"
+        for f in AUTHORING.md CONTRIBUTING.md .github/copilot-instructions.md; do
+          if [ -f "$f" ]; then
+            echo "  Found: $f"
+          else
+            echo "  Missing: $f"
+          fi
+        done
+        echo ""
+        echo "  Key conventions for this repo:"
+        echo "    - Content-only repo (no application code)"
+        echo "    - Commit prefixes: docs: | chore: | fix: | ci: | feat:"
+        echo "    - Commit trailer: Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+        echo "    - Verify before PR: build-and-verify-docs (build + page count + lychee)"
+
+    - name: Check for pull request template
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking for PR template."
+        echo "======================================================"
+        if [ -f ".github/pull_request_template.md" ]; then
+          echo "  PR template found: .github/pull_request_template.md"
+          echo "  Use this template when creating the pull request."
+        else
+          echo "  No PR template found — use make-repo-contribution/assets/pr-template.md."
+        fi
+
+    - name: Verify branch is not main
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Verifying changes are on a feature branch."
+        echo "======================================================"
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        echo "  Current branch: $BRANCH"
+        if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+          echo "ERROR: Changes must not be committed directly to '$BRANCH'."
+          echo "  Create a feature branch before committing."
+          exit 1
+        fi
+        echo "  Branch check: PASS (not on default branch)"
+
+    - name: Check for uncommitted changes
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Checking working tree status."
+        echo "======================================================"
+        STATUS=$(git status --porcelain)
+        if [ -n "$STATUS" ]; then
+          echo "  Uncommitted changes detected:"
+          echo "$STATUS" | sed 's/^/    /'
+          echo ""
+          echo "  REMINDER: Group related changes into logical commits."
+          echo "  Use Conventional Commit prefixes (docs:, fix:, chore:, etc.)."
+          echo "  Include the Co-authored-by trailer on AI-assisted commits."
+        else
+          echo "  Working tree is clean."
+        fi
+
+    - name: Validate recent commits follow conventions
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Validating recent commit messages."
+        echo "======================================================"
+        git log --oneline -5 | while IFS= read -r line; do
+          if echo "$line" | grep -qE '^[a-f0-9]+ (docs|fix|chore|ci|feat|refactor|test|build):'; then
+            echo "  ✓ $line"
+          else
+            echo "  ? $line  (may not follow Conventional Commits)"
+          fi
+        done
+
+    - name: Emit contribution guidelines summary
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  make-repo-contribution check complete."
+        echo "  Before opening the PR:"
+        echo "    1. Run build-and-verify-docs (build + page count + lychee)"
+        echo "    2. Run check-content-alignment if lesson content changed"
+        echo "    3. Ensure commit messages use Conventional Commit prefixes"
+        echo "    4. Include the Co-authored-by trailer on AI-assisted commits"
+        echo "    5. Fill in the PR template (.github/pull_request_template.md)"
+        echo "======================================================"
