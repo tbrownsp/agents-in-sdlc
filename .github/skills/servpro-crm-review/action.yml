@@ -1,0 +1,116 @@
+name: 'ServPro CRM Review'
+description: >
+  SERVPRO Bartlett/Cordova Dash CRM truth review and draft generation.
+  Pulls all of Tristan's open jobs, produces per-job status breakdowns,
+  identifies missing info and docs, flags stale communication, and generates
+  CRM note drafts and Gmail follow-up drafts. DRAFT ONLY — nothing is posted
+  to Dash or sent until Tristan explicitly approves.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   DASH_API_BASE_URL   — Dash CRM base URL
+#   DASH_API_TOKEN      — Dash CRM API token or OAuth credentials
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — For Gmail draft creation
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Only Tristan's assigned open jobs are reviewed."
+        echo "  Closed jobs and other team members' jobs are excluded."
+        echo "======================================================"
+        # TODO: Query Dash API ($DASH_API_BASE_URL) with $DASH_API_TOKEN.
+        # Filter: assigned_to=Tristan, status!=Closed.
+
+    - name: Pull open jobs from Dash (Step 1)
+      shell: bash
+      run: |
+        echo "[DRAFT] Pulling all open jobs from Dash CRM."
+        echo "  Fields: job name, number, type, stage, customer, insurance, last contact, open tasks."
+        # TODO: GET $DASH_API_BASE_URL/jobs?status=open&assignee=tristan
+        # Map fields: job name/number/type, stage, customer info, carrier/adjuster,
+        # last_customer_contact, last_crm_note, open_tasks.
+
+    - name: Flag missing critical intake info (Step 2)
+      shell: bash
+      run: |
+        echo "[DRAFT] Checking each job for missing required intake fields:"
+        echo "  Name, Address, Access, Phone, Email, Cause of Loss, Insurance (if applicable)."
+        # TODO: For each job returned from Dash, verify required fields are non-null.
+        # Accumulate a missing-info list per job.
+
+    - name: Flag missing required docs by job type (Step 3)
+      shell: bash
+      run: |
+        echo "[DRAFT] Checking required documents per job type:"
+        echo "  All jobs: Contract, Work Auth, MSF, Budget, COS, Lien Waiver."
+        echo "  Recon:    + MSF, Change Order, Punch List, Layout."
+        echo "  Mold:     + Mold Protocol, Clearance Docs."
+        echo "  Water:    + Moisture Readings, Drying Logs, Equipment Placement."
+        echo "  Fire:     + Scope of Loss, Smoke/Char Docs."
+        echo "  Contents: + Contents Inventory/Pack-Out List."
+        echo "  Duct:     + Pre/Post Duct Inspection Docs."
+        echo "  Insurance:+ Carrier Estimate, Supplement Requests, ITEL, Claim Correspondence."
+        # TODO: Query Drive folder per job and compare to required doc checklist
+        # for each job type. Report missing docs per job.
+
+    - name: Identify blockers and next actions (Step 4)
+      shell: bash
+      run: |
+        echo "[DRAFT] Identifying blockers per job:"
+        echo "  What is blocking advancement, exact next action, who owns it, when is it due."
+        # TODO: Use Dash task data + Drive doc status to identify each job's blocker.
+        # Output: blocker_description, next_action, owner, due_date_or_trigger.
+
+    - name: 48-hour stale alert list (Step 5)
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — 48-Hour Follow-Up Rule:"
+        echo "  Flagging every job with no customer communication and"
+        echo "  no CRM note in the last 48 hours."
+        echo "======================================================"
+        # TODO: Compare now() vs last_customer_contact and last_crm_note per job.
+        # Flag jobs where both timestamps are > 48 hours ago.
+        # For each stale job: last touchpoint date, type, recommended follow-up action.
+
+    - name: Draft CRM notes (Step 6 — DRAFT ONLY)
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating per-job CRM notes in Dash-ready format."
+        echo "  Format: Current Status | Recent Action | Blocker | Next Action | Follow-up date."
+        echo "  Written in first-person PM language."
+        echo "  POLICY: These are DRAFTS. Nothing is posted to Dash until approved."
+        # TODO: For each job, generate a structured CRM note following the formula:
+        #   1. Current status
+        #   2. Recent action
+        #   3. Blocker / dependency
+        #   4. Next action + owner
+        #   5. Follow-up date or trigger
+        # Never say "Pending Sale money is overdue."
+        # Never copy/paste the same note across multiple jobs.
+
+    - name: Draft Gmail follow-up emails (Step 7 — DRAFT ONLY)
+      shell: bash
+      run: |
+        echo "[DRAFT] Generating follow-up email drafts for stale or action-required jobs."
+        echo "  Tone: Tristan's voice — direct, professional, accountable, calm."
+        echo "  POLICY: Stored as Gmail drafts ONLY. Not sent until Tristan approves."
+        # TODO: For each job requiring customer/adjuster/vendor follow-up,
+        # create a Gmail draft via Gmail API (impersonating $GOOGLE_IMPERSONATED_USER).
+        # Include clear next steps, dates, blockers, and ownership.
+
+    - name: Emit CRM review draft report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  CRM Review complete (DRAFT MODE)."
+        echo "  All CRM notes and emails are stored as DRAFTS."
+        echo "  NOTHING has been posted to Dash or sent to anyone."
+        echo "  Proceed to approval gate before Step 6 (post-to-Dash)."
+        echo "======================================================"

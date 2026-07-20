@@ -1,0 +1,75 @@
+name: 'ServPro Post Dash Notes'
+description: >
+  SERVPRO Bartlett/Cordova final write step. Posts Tristan-approved CRM notes
+  to Dash and sends approved Gmail drafts. Runs ONLY after the tristan-approval
+  environment gate has been cleared. Never posts without explicit approval.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   DASH_API_BASE_URL   — Dash CRM base URL
+#   DASH_API_TOKEN      — Dash CRM API token or OAuth credentials
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — For Gmail draft sending
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Confirm approval gate was cleared
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: This step only runs after Tristan has"
+        echo "  manually approved the tristan-approval gate."
+        echo "  The workflow enforces this via environment protection."
+        echo "  Proceeding to post approved notes to Dash CRM."
+        echo "======================================================"
+        # The GitHub Actions environment gate (tristan-approval) acts as the
+        # hard enforcement mechanism. This log step confirms we are past it.
+        # TODO: Optionally verify a workflow artifact or environment variable
+        # set by the approval gate to double-check the approval state.
+
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "POLICY: Only posting notes for jobs assigned to Tristan Brown."
+        # TODO: Load the approved-notes artifact from the crm-draft-generation job.
+        # Verify every job_id in the payload belongs to Tristan's user in Dash.
+        # Hard-stop on any job not assigned to Tristan.
+
+    - name: Post approved CRM notes to Dash (append-only)
+      shell: bash
+      run: |
+        echo "[POST] Posting approved notes to Dash CRM."
+        echo "  POLICY: Append-only — never overwrite existing notes."
+        echo "  POLICY: Never call Pending Sale money overdue."
+        # TODO: For each approved note in the artifact:
+        #   curl -s -X POST "$DASH_API_BASE_URL/jobs/{job_id}/notes" \
+        #     -H "Authorization: ******" \
+        #     -H "Content-Type: application/json" \
+        #     -d '{"note": "<approved_note_body>"}'
+        # Verify HTTP 200/201. Log job name, timestamp, and first 80 chars of note.
+        # Collect failures — do not abort on a single job failure.
+
+    - name: Send approved Gmail drafts
+      shell: bash
+      run: |
+        echo "[SEND] Sending approved Gmail drafts."
+        echo "  POLICY: Only sends drafts explicitly included in the approval payload."
+        # TODO: For each approved email draft ID:
+        #   Use Gmail API to send the draft (POST /gmail/v1/users/me/drafts/send).
+        # Log recipient, subject, and timestamp for each sent email.
+        # Collect failures — do not abort on a single send failure.
+
+    - name: Emit completion report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Post-to-Dash complete."
+        echo "  Summary:"
+        echo "    CRM Notes Posted: (see logs above)"
+        echo "    Emails Sent:      (see logs above)"
+        echo "    Failures:         (see logs above)"
+        echo "  All actions have been logged. Review the run output"
+        echo "  for any errors that require manual follow-up."
+        echo "======================================================"

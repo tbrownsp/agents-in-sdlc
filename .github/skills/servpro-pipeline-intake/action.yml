@@ -1,0 +1,95 @@
+name: 'ServPro Pipeline Intake'
+description: >
+  SERVPRO Bartlett/Cordova new-lead intake and calendar spread.
+  On a new Google Chat or email lead: creates a Drive job file, drafts
+  outreach to collect missing info, and drafts customer expectation forms.
+  Pushes job details to Calendar and Tasks with color coding.
+  All outreach is draft-only until Tristan approves.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key JSON
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token or OAuth credentials
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Only leads directed to Tristan Brown are"
+        echo "  processed. All others are skipped without modification."
+        echo "======================================================"
+        # TODO: Filter incoming leads to only those assigned to
+        # $GOOGLE_IMPERSONATED_USER or Tristan's Dash user ID.
+
+    - name: Scan for new leads (Module 3 — Lead Intake)
+      shell: bash
+      run: |
+        echo "[DRAFT] Scanning Gmail and Google Chat for new leads."
+        # TODO: Use Gmail API and Chat API to retrieve unprocessed messages
+        # tagged as potential leads (new job inquiries, insurance referrals, etc.)
+
+    - name: Check phase gate before WIP transition
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — Phase Gate Check:"
+        echo "  A job MUST NOT advance to Work In Progress (WIP)"
+        echo "  until all three of the following are confirmed:"
+        echo "    1. Money (deposit / payment commitment)"
+        echo "    2. Contract (signed)"
+        echo "    3. Material Selection Form (MSF) completed"
+        echo "  EXCEPTION: basic drywall put-back may proceed without MSF."
+        echo "======================================================"
+        # TODO: For each lead/job being staged, query Dash for Money, Contract,
+        # and MSF status. Block WIP transition if any of these are missing
+        # (log a clear blocker message; do not silently skip).
+
+    - name: Create Drive job file for new leads
+      shell: bash
+      run: |
+        echo "[DRAFT] Creating Google Drive folder for new lead."
+        echo "  Location: $GDRIVE_ROOT_FOLDER_ID / [Job Address]"
+        # TODO: Use Drive API to create a new job folder with standard sub-folders
+        # (Contracts, Photos, Estimates, Correspondence).
+
+    - name: Draft outreach email for missing info
+      shell: bash
+      run: |
+        echo "[DRAFT] Drafting outreach email to collect missing intake fields."
+        echo "  Required fields: Name, Address, Access, Email, Phone, Cause of Loss, Insurance."
+        # TODO: Identify missing required fields per job, then draft a Gmail email
+        # requesting those fields. Store as a Gmail draft — do NOT send automatically.
+
+    - name: Draft customer expectation forms
+      shell: bash
+      run: |
+        echo "[DRAFT] Drafting customer information/expectation form."
+        # TODO: Auto-populate a Google Form or Doc template with the available
+        # customer data and generate a shareable draft link.
+
+    - name: Push to Calendar and Tasks (Module 3 — Calendar Spread)
+      shell: bash
+      run: |
+        echo "[DRAFT] Pushing job details to Google Calendar and Tasks."
+        echo "  Each event includes: Job Name, Address, task details."
+        echo "  Color coding applied by job status/type."
+        # TODO: Use Calendar API to create/update events with color coding:
+        #   - A/R: Red, WIP: Blue, Pending Sale: Yellow, etc.
+        # Use Tasks API for follow-up items.
+
+    - name: Emit intake draft report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Pipeline Intake complete (DRAFT MODE)."
+        echo "  All proposed outreach, folders, and calendar events"
+        echo "  are queued for Tristan's review."
+        echo "  Nothing has been sent, created, or posted."
+        echo "======================================================"

@@ -1,0 +1,70 @@
+name: 'ServPro Workspace Sync'
+description: >
+  SERVPRO Bartlett/Cordova Google Workspace cross-posting and alignment.
+  Syncs Gmail labels, Drive folders, Calendar events, Tasks, Contacts,
+  Google Photos, and Doc/Form templates. Produces a draft-only action
+  sheet — no emails are sent, no files are moved without Tristan's approval.
+
+# ---------------------------------------------------------------------------
+# Required secrets (must be set in repository/environment Settings → Secrets):
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key JSON
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
+#   GMAIL_LABELS_JSON                      — JSON map of label names to label IDs
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Only Tristan Brown's assigned jobs are"
+        echo "  processed. Jobs assigned to other team members are"
+        echo "  skipped without modification."
+        echo "======================================================"
+        # TODO: Implement assigned-to-me filter by calling Dash CRM API
+        # and cross-referencing with $GOOGLE_IMPERSONATED_USER.
+        # Hard-stop if a job is not assigned to Tristan — log and skip it.
+
+    - name: Sort Gmail by label (Module 2 — Gmail Routing)
+      shell: bash
+      run: |
+        echo "[DRAFT] Sorting Gmail into labels: A/R | In Progress | Pending Sales | General"
+        echo "  Moving non-Tristan job threads out of active view."
+        # TODO: Use Gmail API with $GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON
+        # (impersonating $GOOGLE_IMPERSONATED_USER) to apply label rules.
+        # Generate a draft report of label changes — do NOT apply until approved.
+
+    - name: Sync signed paperwork to Drive (Module 2 — File Distribution)
+      shell: bash
+      run: |
+        echo "[DRAFT] Scanning for signed Contracts, MSFs, COs, Punch Lists, COS."
+        echo "  Uploading to corresponding Drive job folder under $GDRIVE_ROOT_FOLDER_ID."
+        # TODO: Use Drive API to upload new signed docs to the matching job folder.
+        # Match folder by job address/name pattern.
+
+    - name: Sync job photos (Module 2 — Photo Sync)
+      shell: bash
+      run: |
+        echo "[DRAFT] Pulling job photos from Google Photos."
+        echo "  Verifying address, then pushing to Drive and Dash CRM sub-folder."
+        # TODO: Use Photos API to list recent uploads, match to active job addresses,
+        # and push verified photos to Drive and flag for Dash attachment.
+
+    - name: Auto-fill intake templates (Module 2 — Templates)
+      shell: bash
+      run: |
+        echo "[DRAFT] Auto-filling Google Docs/Forms templates with new customer info."
+        echo "  Fields: Name, Address, Access, Email, Phone, Cause of Loss, Insurance."
+        # TODO: Use Docs/Forms API to populate templates from current Dash job data.
+
+    - name: Emit workspace sync draft report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Workspace Sync complete (DRAFT MODE)."
+        echo "  All proposed changes are queued for Tristan's review."
+        echo "  Nothing has been sent, moved, or posted."
+        echo "======================================================"

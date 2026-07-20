@@ -1,0 +1,113 @@
+name: 'ServPro Ops Review'
+description: >
+  SERVPRO Bartlett/Cordova Monday/Wednesday/Friday operational review.
+  Produces a financial summary, crew schedule audit, photo compliance
+  check, and weekly management accountability tracker. Protects mandatory
+  calendar blocks. All outputs are drafts for Tristan's review.
+
+# ---------------------------------------------------------------------------
+# Required secrets:
+#   GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON  — Service account key JSON
+#   GOOGLE_IMPERSONATED_USER               — Tristan's Google Workspace email
+#   GDRIVE_ROOT_FOLDER_ID                  — Root "Tristan's Active Jobs" folder
+#   DASH_API_BASE_URL                      — Dash CRM base URL
+#   DASH_API_TOKEN                         — Dash CRM API token or OAuth credentials
+# ---------------------------------------------------------------------------
+
+runs:
+  using: composite
+  steps:
+    - name: Validate assigned-to-me filter
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY: Operational review covers only Tristan's"
+        echo "  assigned jobs. Other team members' jobs are excluded."
+        echo "======================================================"
+        # TODO: Pull job list from Dash filtered to Tristan's user ID.
+
+    - name: Determine review day
+      shell: bash
+      run: |
+        DAY=$(date +%A)
+        echo "Today is $DAY."
+        echo "Running full ops review steps regardless of day."
+        echo "  → Monday:    Crew audit + full calendar audit + weekly schedule."
+        echo "  → Wednesday: Midweek KPI and blocker check."
+        echo "  → Friday:    Full tracker update + weekly closeout."
+        # TODO: Branch logic per day of week using the $DAY variable.
+
+    - name: Financial summary (Module 4 — Financial Review)
+      shell: bash
+      run: |
+        echo "[DRAFT] Building financial summary."
+        echo "  - Total collected this week"
+        echo "  - Total owed (A/R outstanding)"
+        echo "  - Per-job money status and exact next step/blocker"
+        # TODO: Query Dash for invoice status per job. Summarize:
+        #   collected / invoiced-not-collected / blocked (mortgage, carrier, etc.)
+
+    - name: Crew schedule audit — Monday (Module 4 — Crew Audit)
+      shell: bash
+      run: |
+        echo "[DRAFT] Auditing full weekly calendar for crew locations and times."
+        echo "[DRAFT] Drafting Monday morning crew text prompting group chat update."
+        # TODO: Use Calendar API to pull weekly crew schedule.
+        # Draft texts for each crew lead prompting them to post the weekly plan
+        # to the customer group chat. Store as drafts — do NOT send automatically.
+
+    - name: Photo compliance check (Module 4 — Photo Compliance)
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — 48-Hour Photo Compliance Rule:"
+        echo "  Any crew on site for 48+ hours without posting photos"
+        echo "  triggers a draft alert email to that crew."
+        echo "======================================================"
+        echo "[DRAFT] Auditing Google Photos for each active job site."
+        # TODO: For each WIP job, check the last photo upload date in Google Photos.
+        # If > 48 hours with no upload, draft an alert email to the crew lead.
+        # Store as a Gmail draft — do NOT send automatically.
+
+    - name: 48-hour stale job check
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  POLICY — 48-Hour Follow-Up Rule:"
+        echo "  No active job (especially A/R or Pending Sale) may go"
+        echo "  48 hours without a follow-up, communication, or CRM note."
+        echo "  Flagging all jobs exceeding this threshold."
+        echo "======================================================"
+        # TODO: Query Dash for last CRM note date and last customer contact date
+        # per job. Flag any job where both exceed 48 hours — output a stale list.
+
+    - name: Meeting protection audit (Module 4 — Meeting Protection)
+      shell: bash
+      run: |
+        echo "[DRAFT] Verifying mandatory calendar blocks are in place:"
+        echo "  - Morning office meetings"
+        echo "  - Morning A/R Regional"
+        echo "  - 2:00–3:00 PM Mitigation (as available)"
+        echo "  - Thursday morning 1+ hour sync with Elizabeth"
+        echo "  - Monday mornings (2 hours focus)"
+        echo "  - All day Friday strictly in-office"
+        # TODO: Use Calendar API to verify each required block exists for the
+        # current and next week. Draft calendar events for any missing blocks.
+
+    - name: Friday weekly tracker update (Module 4 — Friday Tracker)
+      shell: bash
+      run: |
+        echo "[DRAFT] Building Weekly Management Accountability Tracker."
+        echo "  Populating spreadsheet/PDF in Drive with all job KPIs."
+        # TODO: Use Sheets API to populate the weekly tracker template in Drive.
+        # Export as PDF if configured. This runs every day but produces the
+        # full weekly summary on Fridays.
+
+    - name: Emit ops review draft report
+      shell: bash
+      run: |
+        echo "======================================================"
+        echo "  Ops Review complete (DRAFT MODE)."
+        echo "  All drafts, alerts, and tracker updates are queued"
+        echo "  for Tristan's review before any action is taken."
+        echo "======================================================"
