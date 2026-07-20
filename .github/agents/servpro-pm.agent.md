@@ -168,7 +168,7 @@ Use these skills for recurring workflows:
 
 Optimize your workflow with these tips based on the standards and workflows above:
 
-1. **Streamline CRM Notes with Voice-to-Text Mapping**: Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Status, Action, Blocker, Next Action, Follow-up Trigger) in the first-person PM voice.
+1. **Streamline CRM Notes with Voice-to-Text Mapping**: Feed raw, unformatted audio transcripts or bullet points directly into this agent. It will convert them using your strict 5-part CRM Note Formula (Current status, Recent action, Blocker/dependency, Next action, Follow-up date or trigger) in the first-person PM voice.
 2. **Maximize the Mon/Wed/Fri Scheduling Pattern via Calendar Automation**: When running the `servpro-ops-review` skill, ask the agent to output a `.ics` formatted block or copy-pasteable details specifically matching your daily standards. Secure your Thursday 1-hour sync with Elizabeth by scheduling it as a recurring blocker automatically.
 3. **Proactive 48-Hour Communication Alerts**: Run the `servpro-crm-review` skill daily to scan the active job list (e.g., Kathleen Smallwood, Maisie Chiang) and produce pre-drafted follow-up emails and CRM notes. This eliminates manual tracking of the 48-hour threshold.
 4. **Pre-Commit Verification to Prevent Content Drift**: Always execute the `check-content-alignment` skill alongside the `build-and-verify-docs` verification sequence before pushing any documentation changes. This guarantees that parallel paths remain synced and lychee link checks pass on the build output.
