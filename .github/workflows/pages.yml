@@ -33,13 +33,12 @@ jobs:
           npm --version
           NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
           if [ "$NODE_MAJOR" -lt 20 ]; then
-            echo "Expected Node.js 20+ on the runner, got $(node -p 'process.versions.node')."
+            echo "Expected Node.js 20+ on the runner, found major version $NODE_MAJOR."
             exit 1
           fi
 
       - name: Restore npm cache
         uses: actions/cache@v4
-        continue-on-error: true
         with:
           path: ~/.npm
           key: ${{ runner.os }}-website-npm-${{ hashFiles('website/package-lock.json') }}
