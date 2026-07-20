@@ -28,9 +28,23 @@ jobs:
 
       - name: Verify preinstalled Node.js
         run: |
+          set -euo pipefail
           node --version
           npm --version
-          node -e 'const major = Number(process.versions.node.split(".")[0]); if (major < 20) { console.error(`Expected Node.js 20+ on the runner, got ${process.versions.node}.`); process.exit(1); }'
+          NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
+          if [ "$NODE_MAJOR" -lt 20 ]; then
+            echo "Expected Node.js 20+ on the runner, got $(node -p 'process.versions.node')."
+            exit 1
+          fi
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        continue-on-error: true
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-website-npm-${{ hashFiles('website/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-website-npm-
 
       - name: Install dependencies
         working-directory: website
