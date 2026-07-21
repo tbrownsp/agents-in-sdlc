@@ -54,12 +54,18 @@ If the note text box or Save button is not found on your Dash instance:
 > prefix in addition to the short `id`. If a short `#id` selector does not
 > work, use the browser inspector to copy the full element selector.
 
-## Auto-save behaviour
+## Auto-save behavior
 
-`AUTO_SAVE` defaults to `false` in `content.js`. You can override it per-click
-in the popup with the **Auto-save** checkbox, or change the default by setting
+The **Auto-save** checkbox in the popup controls whether the Save button is
+clicked automatically after each injection. Its value is sent with every
+injection request and takes precedence over the `AUTO_SAVE` constant in
+`content.js`.
+
+`AUTO_SAVE` in `content.js` only acts as a fallback when the popup does not
+send an explicit `autoSave` value (for example, if you call `injectNote`
+programmatically without the popup). Change it by setting
 `const AUTO_SAVE = true;` in `content.js`.
 
-When `AUTO_SAVE` is `false` the note text is injected into the text area but
+When auto-save is **off**, the note text is injected into the text area but
 the form is **not** submitted — giving you a chance to review the note before
 saving.

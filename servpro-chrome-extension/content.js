@@ -38,7 +38,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
  * Injects `noteText` into the Dash CRM note textarea and optionally saves it.
  *
  * @param {string}  noteText  The note body to inject.
- * @param {boolean} autoSave  When true the save button is clicked automatically.
+ * @param {boolean} autoSave  When true, the save button is clicked automatically.
  * @returns {{ success: boolean, message: string }}
  */
 function injectNote(noteText, autoSave = AUTO_SAVE) {
