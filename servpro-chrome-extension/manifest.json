@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "SERVPRO Note Injector",
+  "version": "1.0.0",
+  "description": "Injects CRM notes into the SERVPRO Dash job board.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://servpro.ngsapps.net/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SERVPRO Note Injector"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://servpro.ngsapps.net/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
