@@ -77,6 +77,78 @@ runs:
         echo "  Running offline lychee link check."
         echo "======================================================"
         if ! command -v lychee &> /dev/null; then
+<<<<<<< HEAD
+          echo "lychee not found. Downloading precompiled binary..."
+          # Pinned version of the lychee link-checker (using v0.24.2, the latest stable release
+          # as of July 2026) to ensure deterministic link checking in local development environments
+          # and CI runs. Can be updated when newer stable releases are published.
+          LYCHEE_VERSION="v0.24.2"
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            LYCHEE_ARCH="aarch64"
+          else
+            LYCHEE_ARCH="x86_64"
+          fi
+          
+          # Note: The actual GitHub release URL structure for lychee utilizes the tag format
+          # 'lychee-v0.24.2' and the file name format 'lychee-x86_64-unknown-linux-gnu.tar.gz'.
+          LYCHEE_FILE="lychee-${LYCHEE_ARCH}-unknown-linux-gnu.tar.gz"
+          LYCHEE_URL="https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/${LYCHEE_FILE}"
+          
+          mkdir -p /tmp/lychee-bin
+          echo "Downloading from: ${LYCHEE_URL}"
+          if ! curl -sSLf "${LYCHEE_URL}" -o "/tmp/${LYCHEE_FILE}"; then
+            echo "ERROR: Failed to download lychee binary from ${LYCHEE_URL}"
+            exit 1
+          fi
+          
+          # Extract preserving the archive's directory structure
+          if ! tar -xzf "/tmp/${LYCHEE_FILE}" -C /tmp/lychee-bin; then
+            echo "ERROR: Failed to extract lychee tarball"
+            exit 1
+          fi
+          rm -f "/tmp/${LYCHEE_FILE}"
+          
+          # Deterministically check standard paths first, falling back to dynamic search if needed.
+          # - /tmp/lychee-bin/lychee: standard flat structure
+          # - /tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee: nested directory structure as seen in v0.24.2 release
+          if [ -f /tmp/lychee-bin/lychee ]; then
+            LYCHEE_FOUND_BIN="/tmp/lychee-bin/lychee"
+          elif [ -f "/tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee" ]; then
+            LYCHEE_FOUND_BIN="/tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee"
+          else
+            LYCHEE_FOUND_BIN=$(find /tmp/lychee-bin -type f -name lychee | head -n 1)
+          fi
+          
+          if [ -z "$LYCHEE_FOUND_BIN" ]; then
+            echo "ERROR: lychee binary not found after extraction"
+            exit 1
+          fi
+          
+          chmod +x "$LYCHEE_FOUND_BIN"
+          if [ -w /usr/local/bin ]; then
+            mv "$LYCHEE_FOUND_BIN" /usr/local/bin/lychee
+            LYCHEE_BIN="lychee"
+          elif command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
+            sudo mv "$LYCHEE_FOUND_BIN" /usr/local/bin/lychee
+            LYCHEE_BIN="lychee"
+          else
+            LYCHEE_BIN="$LYCHEE_FOUND_BIN"
+          fi
+          
+          if [ "$LYCHEE_BIN" = "lychee" ]; then
+            rm -rf /tmp/lychee-bin
+          fi
+        else
+          LYCHEE_BIN="lychee"
+        fi
+        # Uses $GITHUB_WORKSPACE in GitHub Actions environments, falling back to $PWD
+        # for local development as described in SKILL.md.
+        DIST_DIR="${GITHUB_WORKSPACE:-$PWD}/website/dist"
+        if [ ! -d "$DIST_DIR" ]; then
+          echo "ERROR: website/dist directory does not exist. Did the build step fail?"
+          exit 1
+=======
           echo "lychee not found. Installing lychee on the fly..."
           curl -fsSLO https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz
           tar -xzf lychee-x86_64-unknown-linux-gnu.tar.gz
@@ -97,10 +169,11 @@ runs:
             exit 1
           fi
           rm -rf lychee-x86_64-unknown-linux-gnu*
+>>>>>>> origin/main
         fi
         mkdir -p /tmp/lychee-root
-        ln -sfn "$GITHUB_WORKSPACE/website/dist" /tmp/lychee-root/copilot-workshops
-        lychee --offline --no-progress --root-dir /tmp/lychee-root \
+        ln -sfn "$DIST_DIR" /tmp/lychee-root/copilot-workshops
+        "$LYCHEE_BIN" --offline --no-progress --root-dir /tmp/lychee-root \
           'website/dist/**/*.html'
 
     - name: Emit build-and-verify summary
