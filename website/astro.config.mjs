@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { unified } from '@astrojs/markdown-remark';
 import remarkGithubAdmonitionsToDirectives from 'remark-github-admonitions-to-directives';
 
 // Lesson callouts are authored in GitHub admonition syntax (`> [!NOTE]`). This
@@ -22,9 +23,11 @@ export default defineConfig({
   base: '/copilot-workshops',
   trailingSlash: 'always',
   markdown: {
-    remarkPlugins: [
-      [remarkGithubAdmonitionsToDirectives, { mapping: githubAdmonitionMapping }],
-    ],
+    processor: unified({
+      remarkPlugins: [
+        [remarkGithubAdmonitionsToDirectives, { mapping: githubAdmonitionMapping }],
+      ],
+    }),
   },
   integrations: [
     starlight({
