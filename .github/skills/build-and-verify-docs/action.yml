@@ -76,9 +76,28 @@ runs:
         echo "======================================================"
         echo "  Running offline lychee link check."
         echo "======================================================"
+        if ! command -v lychee &> /dev/null; then
+          echo "lychee not found. Downloading precompiled binary..."
+          mkdir -p /tmp/lychee-bin
+          curl -sSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz | tar -xzC /tmp/lychee-bin --strip-components=1
+          chmod +x /tmp/lychee-bin/lychee
+          if [ -w /usr/local/bin ]; then
+            mv /tmp/lychee-bin/lychee /usr/local/bin/
+            LYCHEE_BIN="lychee"
+            rm -rf /tmp/lychee-bin
+          elif command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
+            sudo mv /tmp/lychee-bin/lychee /usr/local/bin/
+            LYCHEE_BIN="lychee"
+            rm -rf /tmp/lychee-bin
+          else
+            LYCHEE_BIN="/tmp/lychee-bin/lychee"
+          fi
+        else
+          LYCHEE_BIN="lychee"
+        fi
         mkdir -p /tmp/lychee-root
-        ln -sfn "$GITHUB_WORKSPACE/website/dist" /tmp/lychee-root/copilot-workshops
-        lychee --offline --no-progress --root-dir /tmp/lychee-root \
+        ln -sfn "${GITHUB_WORKSPACE:-$PWD}/website/dist" /tmp/lychee-root/copilot-workshops
+        "$LYCHEE_BIN" --offline --no-progress --root-dir /tmp/lychee-root \
           'website/dist/**/*.html'
 
     - name: Emit build-and-verify summary
