@@ -78,8 +78,35 @@ runs:
         echo "======================================================"
         if ! command -v lychee &> /dev/null; then
           echo "lychee not found. Downloading precompiled binary..."
+          LYCHEE_VERSION="v0.24.2"
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            LYCHEE_ARCH="aarch64"
+          else
+            LYCHEE_ARCH="x86_64"
+          fi
+          
+          LYCHEE_FILE="lychee-${LYCHEE_ARCH}-unknown-linux-gnu.tar.gz"
+          LYCHEE_URL="https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/${LYCHEE_FILE}"
+          
           mkdir -p /tmp/lychee-bin
-          curl -sSL https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz | tar -xzC /tmp/lychee-bin --strip-components=1
+          echo "Downloading from: ${LYCHEE_URL}"
+          if ! curl -sSLf "${LYCHEE_URL}" -o "/tmp/${LYCHEE_FILE}"; then
+            echo "ERROR: Failed to download lychee binary from ${LYCHEE_URL}"
+            exit 1
+          fi
+          
+          if ! tar -xzf "/tmp/${LYCHEE_FILE}" -C /tmp/lychee-bin --strip-components=1; then
+            echo "ERROR: Failed to extract lychee tarball"
+            exit 1
+          fi
+          rm -f "/tmp/${LYCHEE_FILE}"
+          
+          if [ ! -f /tmp/lychee-bin/lychee ]; then
+            echo "ERROR: lychee binary not found after extraction"
+            exit 1
+          fi
+          
           chmod +x /tmp/lychee-bin/lychee
           if [ -w /usr/local/bin ]; then
             mv /tmp/lychee-bin/lychee /usr/local/bin/
