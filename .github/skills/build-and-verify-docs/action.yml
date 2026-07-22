@@ -78,8 +78,9 @@ runs:
         echo "======================================================"
         if ! command -v lychee &> /dev/null; then
           echo "lychee not found. Downloading precompiled binary..."
-          # Pinned version of the lychee link-checker to ensure deterministic link checking
-          # in local development environments and CI runs. Can be updated when upgrading.
+          # Pinned version of the lychee link-checker (using v0.24.2, the latest stable release
+          # as of July 2026) to ensure deterministic link checking in local development environments
+          # and CI runs. Can be updated when newer stable releases are published.
           LYCHEE_VERSION="v0.24.2"
           ARCH=$(uname -m)
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
@@ -129,8 +130,13 @@ runs:
         else
           LYCHEE_BIN="lychee"
         fi
+        DIST_DIR="${GITHUB_WORKSPACE:-$PWD}/website/dist"
+        if [ ! -d "$DIST_DIR" ]; then
+          echo "ERROR: website/dist directory does not exist. Did the build step fail?"
+          exit 1
+        fi
         mkdir -p /tmp/lychee-root
-        ln -sfn "${GITHUB_WORKSPACE:-$PWD}/website/dist" /tmp/lychee-root/copilot-workshops
+        ln -sfn "$DIST_DIR" /tmp/lychee-root/copilot-workshops
         "$LYCHEE_BIN" --offline --no-progress --root-dir /tmp/lychee-root \
           'website/dist/**/*.html'
 
