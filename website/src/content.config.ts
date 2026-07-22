@@ -1,7 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { docsSchema } from '@astrojs/starlight/schema';
-import { z } from 'astro:schema';
+import { z } from 'zod';
 
 // We use Astro's `glob()` loader directly (instead of Starlight's `docsLoader()`)
 // so we can exclude underscore-prefixed *directories* like `_images/`. Starlight's

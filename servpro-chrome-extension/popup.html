@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SERVPRO Note Injector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      min-width: 320px;
+      padding: 12px;
+      background: #fff;
+      color: #1a1a1a;
+    }
+    h1 {
+      font-size: 14px;
+      margin: 0 0 8px;
+      color: #c8102e; /* SERVPRO red */
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-size: 12px;
+      padding: 6px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    button {
+      flex: 1;
+      padding: 8px 0;
+      font-size: 13px;
+      font-weight: bold;
+      background: #c8102e;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #a50d26;
+    }
+    #autoSaveLabel {
+      font-size: 11px;
+      font-weight: normal;
+      white-space: nowrap;
+    }
+    #status {
+      margin-top: 8px;
+      font-size: 11px;
+      min-height: 16px;
+    }
+    #status.success { color: green; }
+    #status.error   { color: #c8102e; }
+  </style>
+</head>
+<body>
+  <h1>SERVPRO Note Injector</h1>
+
+  <label for="noteText">Note text</label>
+  <textarea id="noteText" placeholder="Type or paste the CRM note here…"></textarea>
+
+  <div class="row">
+    <button id="injectBtn">Inject Note</button>
+    <label id="autoSaveLabel">
+      <input type="checkbox" id="autoSave" />
+      Auto-save
+    </label>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
