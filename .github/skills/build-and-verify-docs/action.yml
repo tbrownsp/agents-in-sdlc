@@ -88,6 +88,8 @@ runs:
             LYCHEE_ARCH="x86_64"
           fi
           
+          # Note: The actual GitHub release URL structure for lychee utilizes the tag format
+          # 'lychee-v0.24.2' and the file name format 'lychee-x86_64-unknown-linux-gnu.tar.gz'.
           LYCHEE_FILE="lychee-${LYCHEE_ARCH}-unknown-linux-gnu.tar.gz"
           LYCHEE_URL="https://github.com/lycheeverse/lychee/releases/download/lychee-${LYCHEE_VERSION}/${LYCHEE_FILE}"
           
