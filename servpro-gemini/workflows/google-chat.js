@@ -16,8 +16,9 @@ const SPACES = {
   management:  process.env.CHAT_SPACE_MANAGEMENT   || '',
 };
 
-// How far back to scan (default: last 48 hours).
-const SCAN_WINDOW_MS = parseInt(process.env.CHAT_SCAN_WINDOW_HOURS || '48', 10) * 3_600_000;
+// How far back to scan in milliseconds (default: last 48 hours).
+const SCAN_WINDOW_HOURS_DEFAULT = parseInt(process.env.CHAT_SCAN_WINDOW_HOURS || '48', 10);
+const SCAN_WINDOW_MS = SCAN_WINDOW_HOURS_DEFAULT * 3_600_000;
 
 // ─── Lead detection ───────────────────────────────────────────────────────────
 

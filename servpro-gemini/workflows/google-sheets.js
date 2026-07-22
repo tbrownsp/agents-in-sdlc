@@ -90,7 +90,7 @@ export async function updateARAgingSummary() {
       job.name,
       job.customer_name,
       job.insurance_carrier ?? 'Retail',
-      job.invoice_amount ? `$${job.invoice_amount.toFixed(2)}` : '',
+      job.invoice_amount ?? '',   // numeric value; Sheets formats as currency
       days ?? '',
       arFlag(days),
     ];
@@ -124,10 +124,10 @@ export async function updateCollectionsDashboard() {
       date,
       job.name,
       job.stage,
-      invoiced   ? `$${invoiced.toFixed(2)}`    : '',
-      collected  ? `$${collected.toFixed(2)}`   : '',
-      outstanding ? `$${outstanding.toFixed(2)}`: '',
-      `${pct}%`,
+      invoiced    || '',    // numeric; Sheets applies currency formatting
+      collected   || '',
+      outstanding || '',
+      pct,                  // numeric percentage; Sheets applies % formatting
     ];
     await appendSheetRow({ spreadsheetId: SPREADSHEET_ID, sheetName: SHEETS.COLLECTIONS, values: row });
   }

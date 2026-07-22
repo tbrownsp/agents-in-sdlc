@@ -27,19 +27,19 @@ ABSOLUTE RULES:
 `.trim();
 
 // ─── Google AI Studio client ──────────────────────────────────────────────────
-let _genAI = null;
+let genAIClient = null;
 
 function getAIStudioClient() {
-  if (!_genAI) {
+  if (!genAIClient) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error(
         'GEMINI_API_KEY is not set. Add it to your .env file or environment.'
       );
     }
-    _genAI = new GoogleGenerativeAI(apiKey);
+    genAIClient = new GoogleGenerativeAI(apiKey);
   }
-  return _genAI;
+  return genAIClient;
 }
 
 // ─── Vertex AI REST helper (enterprise mode) ─────────────────────────────────

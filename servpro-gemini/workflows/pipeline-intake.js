@@ -153,7 +153,7 @@ export async function checkStageGate(job, completedItems = []) {
  *
  * @returns {{ pendingSale: string[], wip: string[] }}
  */
-export function getStagGateChecklists() {
+export function getStageGateChecklists() {
   return {
     pendingSale: [...STAGE_GATE_PENDING_SALE],
     wip:         [...STAGE_GATE_WIP],

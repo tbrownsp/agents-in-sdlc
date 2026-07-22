@@ -7,8 +7,6 @@ import { google } from 'googleapis';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-let _auth = null;
-
 function getAuth(scopes) {
   const saJson = process.env.GOOGLE_WORKSPACE_SERVICE_ACCOUNT_JSON;
   const user   = process.env.GOOGLE_IMPERSONATED_USER;

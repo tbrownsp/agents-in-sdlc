@@ -9,6 +9,10 @@ import { applyGmailLabel, createCalendarEvent, createDriveDoc }     from '../lib
 
 // ─── Gmail label routing ──────────────────────────────────────────────────────
 
+// ─── Business-hours constants for calendar event creation ─────────────────────
+const WORK_DAY_START_TIME = '08:00:00'; // 8 AM Central
+const WORK_DAY_END_TIME   = '17:00:00'; // 5 PM Central
+
 const STAGE_TO_LABEL = {
   'Pending Sale':    'Pending Sale',
   'Pre-Production':  'Work in Progress',
@@ -94,8 +98,8 @@ export async function runWorkspaceSync({ applyLabels = false, createMissingEvent
 
     // Create a Calendar event if the job is WIP and has a start date but no event.
     if (createMissingEvents && job.stage === 'WIP' && job.start_date && !job.calendar_event_id) {
-      const start = `${job.start_date}T08:00:00`;
-      const end   = `${job.start_date}T17:00:00`;
+      const start = `${job.start_date}T${WORK_DAY_START_TIME}`;
+      const end   = `${job.start_date}T${WORK_DAY_END_TIME}`;
 
       const event = await createCalendarEvent({
         summary:     `${job.name} — Crew On Site`,

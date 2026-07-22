@@ -6,7 +6,9 @@
 import { getOpenJobs, getJobTasks, isStale } from '../lib/dash-client.js';
 import { generateFast }                       from '../lib/gemini-client.js';
 
-// ─── Calendar color IDs (Google Calendar) ────────────────────────────────────
+// ─── Calendar color IDs (Google Calendar)
+// See: https://developers.google.com/calendar/api/v3/reference/colors
+/** @type {Record<string, string>} Maps role → Google Calendar colorId */
 export const CAL_COLORS = {
   outOfOffice: '5',  // yellow
   inOffice:    '4',  // red
