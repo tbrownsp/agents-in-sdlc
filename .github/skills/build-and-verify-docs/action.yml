@@ -78,6 +78,8 @@ runs:
         echo "======================================================"
         if ! command -v lychee &> /dev/null; then
           echo "lychee not found. Downloading precompiled binary..."
+          # Pinned version of the lychee link-checker to ensure deterministic link checking
+          # in local development environments and CI runs. Can be updated when upgrading.
           LYCHEE_VERSION="v0.24.2"
           ARCH=$(uname -m)
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
@@ -96,28 +98,31 @@ runs:
             exit 1
           fi
           
-          if ! tar -xzf "/tmp/${LYCHEE_FILE}" -C /tmp/lychee-bin --strip-components=1; then
+          # Extract without hardcoding component stripping, supporting any directory hierarchy
+          if ! tar -xzf "/tmp/${LYCHEE_FILE}" -C /tmp/lychee-bin; then
             echo "ERROR: Failed to extract lychee tarball"
             exit 1
           fi
           rm -f "/tmp/${LYCHEE_FILE}"
           
-          if [ ! -f /tmp/lychee-bin/lychee ]; then
+          # Locate the extracted lychee binary dynamically
+          LYCHEE_FOUND_BIN=$(find /tmp/lychee-bin -type f -name lychee | head -n 1)
+          if [ -z "$LYCHEE_FOUND_BIN" ]; then
             echo "ERROR: lychee binary not found after extraction"
             exit 1
           fi
           
-          chmod +x /tmp/lychee-bin/lychee
+          chmod +x "$LYCHEE_FOUND_BIN"
           if [ -w /usr/local/bin ]; then
-            mv /tmp/lychee-bin/lychee /usr/local/bin/
+            mv "$LYCHEE_FOUND_BIN" /usr/local/bin/lychee
             LYCHEE_BIN="lychee"
             rm -rf /tmp/lychee-bin
           elif command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
-            sudo mv /tmp/lychee-bin/lychee /usr/local/bin/
+            sudo mv "$LYCHEE_FOUND_BIN" /usr/local/bin/lychee
             LYCHEE_BIN="lychee"
             rm -rf /tmp/lychee-bin
           else
-            LYCHEE_BIN="/tmp/lychee-bin/lychee"
+            LYCHEE_BIN="$LYCHEE_FOUND_BIN"
           fi
         else
           LYCHEE_BIN="lychee"
