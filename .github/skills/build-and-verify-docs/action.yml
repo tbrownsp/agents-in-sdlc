@@ -108,8 +108,15 @@ runs:
           fi
           rm -f "/tmp/${LYCHEE_FILE}"
           
-          # Locate the extracted lychee binary dynamically
-          LYCHEE_FOUND_BIN=$(find /tmp/lychee-bin -type f -name lychee | head -n 1)
+          # Deterministically check standard paths first, falling back to dynamic search if needed
+          if [ -f /tmp/lychee-bin/lychee ]; then
+            LYCHEE_FOUND_BIN="/tmp/lychee-bin/lychee"
+          elif [ -f "/tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee" ]; then
+            LYCHEE_FOUND_BIN="/tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee"
+          else
+            LYCHEE_FOUND_BIN=$(find /tmp/lychee-bin -type f -name lychee | head -n 1)
+          fi
+          
           if [ -z "$LYCHEE_FOUND_BIN" ]; then
             echo "ERROR: lychee binary not found after extraction"
             exit 1
@@ -132,6 +139,8 @@ runs:
         else
           LYCHEE_BIN="lychee"
         fi
+        # Uses $GITHUB_WORKSPACE in GitHub Actions environments, falling back to $PWD
+        # for local development as described in SKILL.md.
         DIST_DIR="${GITHUB_WORKSPACE:-$PWD}/website/dist"
         if [ ! -d "$DIST_DIR" ]; then
           echo "ERROR: website/dist directory does not exist. Did the build step fail?"
