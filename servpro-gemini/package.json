@@ -1,0 +1,27 @@
+{
+  "name": "servpro-gemini-workflow",
+  "version": "1.0.0",
+  "description": "SERVPRO Bartlett/Cordova — full Gemini AI workflow runner for Tristan Brown",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "crm-review": "node index.js crm-review",
+    "ops-review": "node index.js ops-review",
+    "pipeline-intake": "node index.js pipeline-intake",
+    "gemini-drafts": "node index.js gemini-drafts",
+    "workspace-sync": "node index.js workspace-sync",
+    "google-sheets": "node index.js google-sheets",
+    "google-chat": "node index.js google-chat",
+    "vertex-ai": "node index.js vertex-ai",
+    "post-dash-notes": "node index.js post-dash-notes"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "googleapis": "^144.0.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
