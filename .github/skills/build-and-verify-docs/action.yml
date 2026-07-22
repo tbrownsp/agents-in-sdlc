@@ -101,14 +101,16 @@ runs:
             exit 1
           fi
           
-          # Extract without hardcoding component stripping, supporting any directory hierarchy
+          # Extract preserving the archive's directory structure
           if ! tar -xzf "/tmp/${LYCHEE_FILE}" -C /tmp/lychee-bin; then
             echo "ERROR: Failed to extract lychee tarball"
             exit 1
           fi
           rm -f "/tmp/${LYCHEE_FILE}"
           
-          # Deterministically check standard paths first, falling back to dynamic search if needed
+          # Deterministically check standard paths first, falling back to dynamic search if needed.
+          # - /tmp/lychee-bin/lychee: standard flat structure
+          # - /tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee: nested directory structure as seen in v0.24.2 release
           if [ -f /tmp/lychee-bin/lychee ]; then
             LYCHEE_FOUND_BIN="/tmp/lychee-bin/lychee"
           elif [ -f "/tmp/lychee-bin/lychee-${LYCHEE_ARCH}-unknown-linux-gnu/lychee" ]; then
