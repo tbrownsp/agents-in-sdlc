@@ -119,13 +119,15 @@ runs:
           if [ -w /usr/local/bin ]; then
             mv "$LYCHEE_FOUND_BIN" /usr/local/bin/lychee
             LYCHEE_BIN="lychee"
-            rm -rf /tmp/lychee-bin
           elif command -v sudo &> /dev/null && sudo -n true 2>/dev/null; then
             sudo mv "$LYCHEE_FOUND_BIN" /usr/local/bin/lychee
             LYCHEE_BIN="lychee"
-            rm -rf /tmp/lychee-bin
           else
             LYCHEE_BIN="$LYCHEE_FOUND_BIN"
+          fi
+          
+          if [ "$LYCHEE_BIN" = "lychee" ]; then
+            rm -rf /tmp/lychee-bin
           fi
         else
           LYCHEE_BIN="lychee"
