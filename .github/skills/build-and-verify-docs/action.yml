@@ -77,7 +77,6 @@ runs:
         echo "  Running offline lychee link check."
         echo "======================================================"
         if ! command -v lychee &> /dev/null; then
-<<<<<<< HEAD
           echo "lychee not found. Downloading precompiled binary..."
           # Pinned version of the lychee link-checker (using v0.24.2, the latest stable release
           # as of July 2026) to ensure deterministic link checking in local development environments
@@ -148,28 +147,6 @@ runs:
         if [ ! -d "$DIST_DIR" ]; then
           echo "ERROR: website/dist directory does not exist. Did the build step fail?"
           exit 1
-=======
-          echo "lychee not found. Installing lychee on the fly..."
-          curl -fsSLO https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz
-          tar -xzf lychee-x86_64-unknown-linux-gnu.tar.gz
-          LYCHEE_BIN=$(find . -maxdepth 3 -name lychee -type f | head -n 1)
-          if [ -n "$LYCHEE_BIN" ]; then
-            if [ -w /usr/local/bin ]; then
-              mv "$LYCHEE_BIN" /usr/local/bin/
-            else
-              sudo mv "$LYCHEE_BIN" /usr/local/bin/ || {
-                mkdir -p "$HOME/.local/bin"
-                mv "$LYCHEE_BIN" "$HOME/.local/bin/lychee"
-                export PATH="$HOME/.local/bin:$PATH"
-                echo "PATH=$HOME/.local/bin:$PATH" >> "$GITHUB_ENV"
-              }
-            fi
-          else
-            echo "ERROR: Could not locate lychee binary after extraction."
-            exit 1
-          fi
-          rm -rf lychee-x86_64-unknown-linux-gnu*
->>>>>>> origin/main
         fi
         mkdir -p /tmp/lychee-root
         ln -sfn "$DIST_DIR" /tmp/lychee-root/copilot-workshops

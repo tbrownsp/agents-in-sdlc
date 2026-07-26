@@ -42,7 +42,25 @@ Output: ranked list with risk score, category (Financial / Schedule / Both / Low
   console.log('\nRisk Analysis (Gemini Enterprise / pro model):');
   console.log(output);
 
-  return { runAt: new Date().toISOString(), jobCount: jobs.length, output };
+  // Extract structured risk mapping for downstream use.
+  const riskMapping = {};
+  const lines = output.split('\n');
+  for (const job of jobs) {
+    // Look for the job name in the output and try to find a score or flag.
+    const jobLine = lines.find(l => l.includes(job.name));
+    if (jobLine) {
+      if (jobLine.match(/critical/i)) riskMapping[job.id] = '⚠️ CRITICAL';
+      else if (jobLine.match(/score:\s*[89]/i)) riskMapping[job.id] = '🔴 HIGH';
+      else if (jobLine.match(/score:\s*[567]/i)) riskMapping[job.id] = '🟡 MED';
+      else riskMapping[job.id] = '🟢 LOW';
+    } else {
+      riskMapping[job.id] = '🟢 LOW';
+    }
+    // Set the internal flag on the job object if it exists in the current array.
+    job._riskFlag = riskMapping[job.id];
+  }
+
+  return { runAt: new Date().toISOString(), jobCount: jobs.length, output, riskMapping, jobs };
 }
 
 // ─── Insurance scope validation ───────────────────────────────────────────────

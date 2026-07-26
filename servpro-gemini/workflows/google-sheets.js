@@ -41,13 +41,14 @@ function arFlag(days) {
  * Append one row per open job to the Weekly Management Accountability Tracker.
  * Row format: Date | Job Name | Stage | Type | Customer | Blocker | Next Action | Risk
  *
+ * @param {Job[]} [providedJobs] - Optional list of jobs with AI-enriched fields.
  * @returns {Promise<void>}
  */
-export async function updateWeeklyTracker() {
+export async function updateWeeklyTracker(providedJobs) {
   if (!SPREADSHEET_ID) throw new Error('SERVPRO_SPREADSHEET_ID is not set.');
   console.log('=== Updating Weekly Management Accountability Tracker ===');
 
-  const jobs = await getOpenJobs();
+  const jobs = providedJobs || await getOpenJobs();
   const date = new Date().toLocaleDateString('en-US');
 
   for (const job of jobs) {
@@ -58,9 +59,9 @@ export async function updateWeeklyTracker() {
       job.stage,
       job.type,
       job.customer_name,
-      job.blocker ?? '',
-      job.next_action ?? '',
-      job._riskFlag ?? '',
+      job.blocker ?? 'none',
+      job.nextAction ?? job.next_action ?? 'none', // Handle both camelCase and snake_case
+      job._riskFlag ?? 'Low',
     ];
     await appendSheetRow({ spreadsheetId: SPREADSHEET_ID, sheetName: SHEETS.TRACKER, values: row });
     console.log(`  Added row: ${job.name} | ${job.stage}`);

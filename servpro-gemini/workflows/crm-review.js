@@ -69,6 +69,20 @@ Last contact: ${job.last_customer_contact ?? 'unknown'}
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+function parseNoteSections(noteText) {
+  const sections = { blocker: 'none', nextAction: 'none' };
+  
+  // Look for "3. Blocker" or "Blocker / Dependency"
+  const blockerMatch = noteText.match(/(?:3\.\s+Blocker|Blocker\s*\/\s*Dependency)\s*[:\-\s]+([^\n]+)/i);
+  if (blockerMatch) sections.blocker = blockerMatch[1].trim();
+
+  // Look for "4. Next Action"
+  const nextActionMatch = noteText.match(/(?:4\.\s+Next Action|Next Action)\s*[:\-\s]+([^\n]+)/i);
+  if (nextActionMatch) sections.nextAction = nextActionMatch[1].trim();
+
+  return sections;
+}
+
 /**
  * Run the full CRM review for all open jobs assigned to Tristan.
  * Returns a report object containing per-job breakdowns and draft outputs.
@@ -105,6 +119,8 @@ export async function runCRMReview() {
       name:        job.name,
       stage:       job.stage,
       type:        job.type,
+      job_number:  job.job_number,
+      customer_name: job.customer_name,
       missingInfo,
       missingDocs,
       stale,
@@ -120,8 +136,14 @@ export async function runCRMReview() {
     const rawNote  = await generateFast(buildCRMPrompt(job, missingInfo, missingDocs, notes, tasks));
     const { draft: checkedNote, passed, issues } = await qualityCheck(rawNote);
     if (!passed) console.log(`  Quality issues found: ${issues.join(' | ')}`);
-    jobEntry.draftNote = checkedNote;
-    report.drafts.crmNotes.push({ jobId: job.id, jobName: job.name, note: checkedNote });
+    
+    // Parse blocker and next action from the note.
+    const parsed = parseNoteSections(checkedNote);
+    jobEntry.blocker    = parsed.blocker;
+    jobEntry.nextAction = parsed.nextAction;
+    jobEntry.draftNote  = checkedNote;
+
+    report.drafts.crmNotes.push({ jobId: job.id, jobName: job.name, note: checkedNote, blocker: parsed.blocker, nextAction: parsed.nextAction });
 
     // Generate follow-up email draft for stale jobs.
     if (stale) {

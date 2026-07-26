@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Launch Integrated Browser",
+            "request": "launch",
+            "type": "editor-browser",
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Deploy Cloud Function",
+            "type": "cloudcode.cloudfunctions",
+            "request": "launch",
+            "functionName": "tristan",
+            "gen": "GEN_2",
+            "revision": "1",
+            "entryPoint": "helloWorld",
+            "testInput": "",
+            "region": "northamerica-northeast1",
+            "runtime": "python310",
+            "serviceAccount": "tbrown@servproeastmemphis.com"
+        }
+    ]
+}

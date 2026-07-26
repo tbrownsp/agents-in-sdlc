@@ -87,6 +87,23 @@ Produce:
 
 // ─── Main exports ─────────────────────────────────────────────────────────────
 
+function parseLeadSections(text) {
+  const sections = { outreach: '', crmNote: '', missingInfo: '', nextAction: '' };
+  
+  // Use regex to find sections by keyword or number
+  const outreachMatch = text.match(/(?:1\.|outreach email)[\s\S]+?(?=\n\d\.|\n(?:Internal CRM|Missing-info|Recommended)|$)/i);
+  const crmNoteMatch  = text.match(/(?:2\.|Internal CRM intake note)[\s\S]+?(?=\n\d\.|\n(?:Missing-info|Recommended)|$)/i);
+  const missingMatch  = text.match(/(?:3\.|Missing-info follow-up email)[\s\S]+?(?=\n\d\.|\nRecommended|$)/i);
+  const nextMatch     = text.match(/(?:4\.|Recommended next action)[\s\S]+$/i);
+
+  if (outreachMatch) sections.outreach = outreachMatch[0].replace(/^(?:1\.|outreach email)[:\s]*/i, '').trim();
+  if (crmNoteMatch)  sections.crmNote  = crmNoteMatch[0].replace(/^(?:2\.|Internal CRM intake note)[:\s]*/i, '').trim();
+  if (missingMatch)  sections.missingInfo = missingMatch[0].replace(/^(?:3\.|Missing-info follow-up email)[:\s]*/i, '').trim();
+  if (nextMatch)     sections.nextAction = nextMatch[0].replace(/^(?:4\.|Recommended next action)[:\s]*/i, '').trim();
+
+  return sections;
+}
+
 /**
  * Process a new incoming lead and produce the full intake package.
  *
@@ -103,9 +120,9 @@ export async function intakeNewLead(lead) {
 
   const output = await generateFast(intakePrompt(lead));
 
-  // Parse the outreach email from the output (lines after "1." heading).
-  const sections = output.split(/^\d+\.\s+/m).filter(Boolean);
-  const [outreachSection, crmNoteSection, missingInfoSection, nextActionSection] = sections;
+  // Robust parsing of sections.
+  const sections = parseLeadSections(output);
+  const { outreach: outreachSection, crmNote: crmNoteSection, nextAction: nextActionSection } = sections;
 
   // Create Gmail draft for outreach (if email is known).
   let gmailDraftId = null;

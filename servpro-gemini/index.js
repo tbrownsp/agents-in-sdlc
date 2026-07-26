@@ -15,6 +15,7 @@
 
 import 'dotenv/config';
 import { createInterface } from 'readline';
+import fs from 'fs/promises';
 
 // ─── Workflow imports ─────────────────────────────────────────────────────────
 
@@ -95,7 +96,9 @@ async function main() {
       // ── CRM Review ──────────────────────────────────────────────────────────
       case 'crm-review': {
         const report = await runCRMReview();
-        console.log('\nFull report stored in memory — pass to post-dash-notes after approval.');
+        await fs.writeFile('last-crm-report.json', JSON.stringify(report, null, 2));
+        console.log('\nReport saved to last-crm-report.json');
+        console.log('Review and approve drafts, then run: node index.js post-dash-notes');
         break;
       }
 
@@ -189,7 +192,33 @@ async function main() {
       // ── Google Sheets ────────────────────────────────────────────────────────
       case 'google-sheets': {
         const sub = subCommand || 'tracker';
-        if (sub === 'tracker')        await updateWeeklyTracker();
+        if (sub === 'tracker') {
+          let jobs = null;
+          try {
+            const reportRaw = await fs.readFile('last-crm-report.json', 'utf-8');
+            const report = JSON.parse(reportRaw);
+            jobs = report.jobs;
+            console.log('Using enriched job data from last-crm-report.json');
+
+            // Try to merge risk data if available
+            try {
+              const riskRaw = await fs.readFile('last-risk-report.json', 'utf-8');
+              const riskReport = JSON.parse(riskRaw);
+              for (const job of jobs) {
+                if (riskReport.riskMapping?.[job.id]) {
+                  job._riskFlag = riskReport.riskMapping[job.id];
+                }
+              }
+              console.log('Merged risk data from last-risk-report.json');
+            } catch {
+              // No risk report, that's fine.
+            }
+
+          } catch {
+            console.log('No recent CRM report found; pulling raw job data from Dash.');
+          }
+          await updateWeeklyTracker(jobs);
+        }
         else if (sub === 'ar')        await updateARAgingSummary();
         else if (sub === 'collections') await updateCollectionsDashboard();
         else if (sub === 'money-summary') {
@@ -211,7 +240,11 @@ async function main() {
       // ── Vertex AI ────────────────────────────────────────────────────────────
       case 'vertex-ai': {
         const sub = subCommand || 'risk';
-        if (sub === 'risk')         await runRiskAnalysis();
+        if (sub === 'risk') {
+          const report = await runRiskAnalysis();
+          await fs.writeFile('last-risk-report.json', JSON.stringify(report, null, 2));
+          console.log('\nRisk report saved to last-risk-report.json');
+        }
         else if (sub === 'summary') await generateWeeklyExecutiveSummary();
         else if (sub === 'scope') {
           const analysis = await validateInsuranceScope({
@@ -233,21 +266,32 @@ async function main() {
 
       // ── Post Dash Notes ──────────────────────────────────────────────────────
       case 'post-dash-notes': {
-        // In production, pass the CRM review report as JSON via stdin or a file.
+        let approvedNotes = null;
+        const notesJson = process.env.APPROVED_NOTES_JSON;
+        
+        if (notesJson) {
+          approvedNotes = JSON.parse(notesJson);
+        } else {
+          try {
+            const reportRaw = await fs.readFile('last-crm-report.json', 'utf-8');
+            const report = JSON.parse(reportRaw);
+            approvedNotes = report.drafts.crmNotes;
+            console.log(`Loaded ${approvedNotes.length} drafts from last-crm-report.json`);
+          } catch {
+            console.error('No approved notes provided and no last-crm-report.json found.');
+            process.exit(1);
+          }
+        }
+
         const confirm = await ask(
-          '⚠️  THIS POSTS DIRECTLY TO DASH CRM.\n' +
-          'Have you reviewed and approved all CRM note drafts? (yes/no): '
+          `⚠️  THIS POSTS ${approvedNotes.length} NOTES DIRECTLY TO DASH CRM.\n` +
+          'Have you reviewed and approved these drafts? (yes/no): '
         );
         if (confirm.toLowerCase() !== 'yes') {
           console.log('Aborted — no notes posted.');
           break;
         }
-        const notesJson = process.env.APPROVED_NOTES_JSON;
-        if (!notesJson) {
-          console.error('Set APPROVED_NOTES_JSON to the JSON array of approved notes before running.');
-          process.exit(1);
-        }
-        const approvedNotes = JSON.parse(notesJson);
+        
         await postAllApprovedNotes(approvedNotes);
         break;
       }

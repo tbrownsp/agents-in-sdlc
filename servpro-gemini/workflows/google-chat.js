@@ -35,13 +35,17 @@ Return a JSON object with these fields (use null if unknown):
 
 Message: ${messageText}
 
-Respond with ONLY valid JSON — no markdown fences.
+Respond with ONLY valid JSON.
 `.trim();
 
   const raw = await generateFast(prompt);
   try {
-    return JSON.parse(raw.replace(/^```json\n?|```$/g, '').trim());
-  } catch {
+    // Robust extraction: find the first { and the last }
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON found in response');
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error(`  Failed to parse lead JSON: ${err.message}. Raw output: ${raw}`);
     return { customerName: null, address: null, phone: null, email: null, causeOfLoss: null, notes: messageText };
   }
 }
