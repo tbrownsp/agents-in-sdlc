@@ -14,10 +14,10 @@
     "check:all": "npm run check && npm run check:tsgo"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.12",
     "@astrojs/starlight": "^0.41.4",
     "astro": "^7.1.4",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
